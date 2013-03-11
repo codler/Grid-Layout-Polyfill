@@ -15,64 +15,64 @@
 
 <style>
 #Grid {
-    border: 1px solid grey;
-    background-color: #ddd;
-    display: -ms-grid;
-    -ms-grid-columns: 100px 1fr 100px;
-    -ms-grid-rows: 100px 1fr 100px;
+	border: 1px solid grey;
+	background-color: #ddd;
+	display: -ms-grid;
+	-ms-grid-columns: 100px 1fr 100px;
+	-ms-grid-rows: 100px 1fr 100px;
 }
 #Grid > * {
-    border: 1px dotted black;
+	border: 1px dotted black;
 }
 #GridItem1 {
-    background: blue;
-    -ms-grid-column: 1;
-    -ms-grid-row: 1;
-    -ms-grid-column-span: 3;
-    -ms-grid-row-span: 1;
+	background: blue;
+	-ms-grid-column: 1;
+	-ms-grid-row: 1;
+	-ms-grid-column-span: 3;
+	-ms-grid-row-span: 1;
 }
 #GridItem2 {
-    background: red;
-    border: 3px solid yellow;
-    -ms-grid-column: 1;
-    -ms-grid-row: 2;
-    -ms-grid-column-span: 1;
-    -ms-grid-row-span: 1;
+	background: red;
+	border: 3px solid yellow;
+	-ms-grid-column: 1;
+	-ms-grid-row: 2;
+	-ms-grid-column-span: 1;
+	-ms-grid-row-span: 1;
 }
 #GridItem3 {
-    position: relative;
-    background: green;
-    width: 50%;
-    -ms-grid-column: 2;
-    -ms-grid-row: 2;
-    -ms-grid-column-span: 1;
-    -ms-grid-row-span: 1;
+	position: relative;
+	background: green;
+	width: 50%;
+	-ms-grid-column: 2;
+	-ms-grid-row: 2;
+	-ms-grid-column-span: 1;
+	-ms-grid-row-span: 1;
 }
 #GridItemInner3 {
-    position: absolute;
-    right: 0px;
+	position: absolute;
+	right: 0px;
 }
 </style>
 </head>
 <body>
 	
 <div id="Grid">
-    <div class="GridItem" id="GridItem1">1
-        <br>2
-        <br>c
-        <br>d
-        <br>e
-        <br>f
-        <br>g
-        <br>h
-        <br>i
-        <br>
-    </div>
-    <div class="GridItem" id="GridItem2">2</div>
-    <div class="GridItem" id="GridItem3">
-        <div id="GridItemInner3">3a</div>3b</div>
-    <div class="GridItem">4 gtkjgfftlgjflkgjfd gljdfklgjdflkgjdflkgjdflg</div>
-    <div class="GridItem">5</div>
+	<div class="GridItem" id="GridItem1">1
+		<br>2
+		<br>c
+		<br>d
+		<br>e
+		<br>f
+		<br>g
+		<br>h
+		<br>i
+		<br>
+	</div>
+	<div class="GridItem" id="GridItem2">2</div>
+	<div class="GridItem" id="GridItem3">
+		<div id="GridItemInner3">3a</div>3b</div>
+	<div class="GridItem">4 gtkjgfftlgjflkgjfd gljdfklgjdflkgjdflkgjdflg</div>
+	<div class="GridItem">5</div>
 </div>
 <p>efter</p>
 <p id="output"></p>
