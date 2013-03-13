@@ -1,4 +1,4 @@
-/*! CSS3 Finalize - v1.1 - 2013-03-11 - Grid Layout Polyfill
+/*! CSS3 Finalize - v1.2 - 2013-03-13 - Grid Layout Polyfill
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
 // Avoid `console` errors in browsers that lack a console.
@@ -180,7 +180,11 @@ jQuery(function ($) {
 
 	console.clear();
 
-	var objCss = cssTextToObj($('style').html());
+	var styles = $('style').map(function() {
+		return $(this).html();
+	}).get().join();
+
+	var objCss = cssTextToObj(styles);
 	console.log(objCss);
 
 	/* { selector, attributes, tracks : ([index-x/row][index-y/col] : { x, y }) } */
