@@ -1,6 +1,87 @@
 /*! CSS3 Finalize - v1.1 - 2013-03-11 - Grid Layout Polyfill
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
+// Avoid `console` errors in browsers that lack a console.
+(function() {
+    var method;
+    var noop = function () {};
+    var methods = [
+        'assert', 'clear', 'count', 'debug', 'dir', 'dirxml', 'error',
+        'exception', 'group', 'groupCollapsed', 'groupEnd', 'info', 'log',
+        'markTimeline', 'profile', 'profileEnd', 'table', 'time', 'timeEnd',
+        'timeStamp', 'trace', 'warn'
+    ];
+    var length = methods.length;
+    var console = (window.console = window.console || {});
+
+    while (length--) {
+        method = methods[length];
+
+        // Only stub undefined methods.
+        if (!console[method]) {
+            console[method] = noop;
+        }
+    }
+}());
+if (!Array.prototype.reduce) {
+
+	Array.prototype.reduce = function(callbackfn /*, initialValue */) {
+
+		// step 1
+		if (this == null) {
+			throw new TypeError("can't convert " + this + " to object");
+		}
+		var O = Object(this);
+
+		// steps 2 & 3
+		var len = O.length >>> 0;
+
+		// step 4
+		if (typeof callbackfn != "function") {
+			throw new TypeError(callbackfn + " is not a function");
+		}
+
+		// step 5
+		if (len === 0 && arguments.length < 2) {
+			throw new TypeError('reduce of empty array with no initial value');
+		}
+	
+		// step 6
+		var k = 0;
+
+		// step 7
+		var accumulator;
+		if (arguments.length > 1) {
+			accumulator = arguments[1];
+		}
+		// step 8
+		else {
+			var kPresent = false;
+			while ((!kPresent) && (k < len)) {
+				kPresent = k in O;
+				if (kPresent) {
+					accumulator = O[k];
+				}
+				k++;
+			}
+			if (!kPresent) {
+				throw new TypeError('reduce of empty array with no initial value');
+			}
+		}
+
+		// step 9
+		while (k < len) {
+			if (k in O) {
+				accumulator = callbackfn.call(undefined, accumulator, O[k], k, O);
+			}
+			k++;
+		}
+	
+		// step 10
+		return accumulator;
+	};
+
+}
 function cssTextToObj(text) {
 	var block = text.split(/({[^{}]*})/);
 
@@ -99,7 +180,7 @@ jQuery(function ($) {
 
 	console.clear();
 
-	var objCss = cssTextToObj($('style').text());
+	var objCss = cssTextToObj($('style').html());
 	console.log(objCss);
 
 	/* { selector, attributes, tracks : ([index-x/row][index-y/col] : { x, y }) } */
@@ -151,7 +232,7 @@ jQuery(function ($) {
 		});
 
 		/*block.tracks = */normalizeFractionWidth($(block.selector).outerWidth(), block.tracks);
-		normalizeFractionHeight($(block.selector).outerHeight(), block.tracks);
+		
 
 		console.log($(block.selector).outerWidth());
 		console.log($(block.selector).outerHeight());
@@ -165,6 +246,88 @@ jQuery(function ($) {
 			width: block.tracks[0][0].x,
 			height: block.tracks[0][0].y
 		}).each(function (i, e) {
+			var gridItem = $(this);
+
+			var selectors = findDefinedSelectors(gridItem);
+
+			// sort specify
+			selectors.sort(function(a, b) {
+				a = getCSSRuleSpecificity(a)
+				b = getCSSRuleSpecificity(b)
+				if (a < b) {
+					 return -1; 
+				} else if(a > b) {
+					 return 1;  
+				} else {
+					 return 0;   
+				}
+			});
+			console.log(selectors);
+			// TODO: merge all attr to find other same attributes
+
+			var attributes = getAttributesBySelector(objCss, selectors.pop());
+			if (!attributes) return true;
+
+			var row = attributes['-ms-grid-row'] || 1;
+			var column = attributes['-ms-grid-column'] || 1;
+
+			block.tracks[row-1][column-1].item = gridItem;
+		});
+
+		$(block.selector).children().css({
+			'box-sizing': 'border-box',
+				'position': 'absolute',
+			top: 0,
+			left: 0,
+			width: block.tracks[0][0].x,
+			height: block.tracks[0][0].y
+		}).each(function (i, e) {
+			var gridItem = $(this);
+
+			var selectors = findDefinedSelectors(gridItem);
+
+			// sort specify
+			selectors.sort(function(a, b) {
+				a = getCSSRuleSpecificity(a)
+				b = getCSSRuleSpecificity(b)
+				if (a < b) {
+					 return -1; 
+				} else if(a > b) {
+					 return 1;  
+				} else {
+					 return 0;   
+				}
+			});
+			console.log(selectors);
+			// TODO: merge all attr to find other same attributes
+
+			var attributes = getAttributesBySelector(objCss, selectors.pop());
+			if (!attributes) return true;
+
+			var row = attributes['-ms-grid-row'] || 1;
+			var column = attributes['-ms-grid-column'] || 1;
+			var columnSpan = attributes['-ms-grid-column-span'] || 1;
+			var rowSpan = attributes['-ms-grid-row-span'] || 1;
+
+			var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
+			var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
+			console.log(row, column, columnSpan, rowSpan);
+			console.log(size);
+			console.log(pos);
+			$(this).css({
+				//top: pos.y,
+				//left: pos.x,
+				width: size.x,
+				//height: size.y
+			})
+		})
+		var realHeight = normalizeFractionHeight($(block.selector).outerHeight(), block.tracks);
+		$(block.selector).css({
+			height: realHeight
+		});
+
+
+		$(block.selector).children().each(function (i, e) {
 			var gridItem = $(this);
 
 			var selectors = findDefinedSelectors(gridItem);
@@ -223,7 +386,7 @@ jQuery(function ($) {
 
 			// TODO: reduce do not exist in IE8 and lower.
 			var sumFraction = fractions.reduce(function(a, b) {
-			    return parseInt(a, 10) + parseInt(b, 10);
+				return parseInt(a, 10) + parseInt(b, 10);
 			}, 0);
 
 			for (var c = 0; c < tracks[r].length; c++) {
@@ -237,6 +400,8 @@ jQuery(function ($) {
 	}
 
 	function normalizeFractionHeight(height, tracks) {
+		var realHeight = height;
+		var readRealHeight = false
 
 		for (var c = 0; c < tracks[0].length; c++) {
 			var fractions = [];
@@ -244,6 +409,15 @@ jQuery(function ($) {
 			for (var r = 0; r < tracks.length; r++) {
 				if (tracks[r][c].y.indexOf('fr') !== -1) {
 					fractions.push(parseFloat(tracks[r][c].y));
+					//tracks[r][c].fractionY = parseFloat(tracks[r][c].y);
+					if (tracks[r][c].item) {
+						tracks[r][c].item.height('auto');
+						totalHeightWithoutFractions += tracks[r][c].item.outerHeight(true);
+						if (!readRealHeight) {
+							realHeight += tracks[r][c].item.outerHeight(true);
+							readRealHeight = true;
+						}
+					}
 					//console.log(tracks[r]);
 				} else if (tracks[r][c].y.indexOf('px') !== -1) {
 					console.log(tracks[r][c].y);
@@ -253,7 +427,7 @@ jQuery(function ($) {
 
 			// TODO: reduce do not exist in IE8 and lower.
 			var sumFraction = fractions.reduce(function(a, b) {
-			    return parseInt(a, 10) + parseInt(b, 10);
+				return parseInt(a, 10) + parseInt(b, 10);
 			}, 0);
 
 			for (var r = 0; r < tracks.length; r++) {
@@ -264,6 +438,7 @@ jQuery(function ($) {
 			}
 
 		};
+		return realHeight;
 	}
 
 	function getAttributesBySelector(objCss, selector) {
