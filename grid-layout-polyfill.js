@@ -182,7 +182,7 @@ jQuery(function ($) {
 
 	var styles = $('style').map(function() {
 		return $(this).html();
-	}).get().join();
+	}).get().join('');
 
 	var objCss = cssTextToObj(styles);
 	console.log(objCss);
