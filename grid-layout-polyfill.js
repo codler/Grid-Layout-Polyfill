@@ -1,4 +1,4 @@
-/*! CSS3 Finalize - v1.2 - 2013-03-13 - Grid Layout Polyfill
+/*! CSS3 Finalize - v1.3 - 2013-03-27 - Grid Layout Polyfill
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
 // Avoid `console` errors in browsers that lack a console.
@@ -82,7 +82,23 @@ if (!Array.prototype.reduce) {
 	};
 
 }
+
+function cleanCss(css) {
+	// strip multiline comment
+	css = css.replace(/\/\*((?:[^\*]|\*[^\/])*)\*\//g, '');
+
+	// remove newline
+	css = css.replace(/\n/g, '');
+	css = css.replace(/\r/g, '');
+
+	// remove @import - Future TODO read if css was imported and parse it.
+	css = css.replace(/\@import[^;]*;/g, '');
+
+	return css;
+}
+
 function cssTextToObj(text) {
+	text = cleanCss(text);
 	var block = text.split(/({[^{}]*})/);
 
 	// fixes recursive block at end
@@ -136,6 +152,8 @@ function cssTextToObj(text) {
 }
 
 function cssTextAttributeToObj(text) {
+	text = cleanCss(text || '');
+
 	// Data URI fix
 	var attribute;
 	text = text.replace(/url\(([^)]+)\)/g, function (url) {
@@ -176,7 +194,17 @@ jQuery(function ($) {
 
 		return tagCount + 10 * classCount + 100 * idCount;
 	};
-
+	var sortCSSRuleSpecificity = function(a, b) {
+		a = getCSSRuleSpecificity(a)
+		b = getCSSRuleSpecificity(b)
+		if (a < b) {
+			 return -1; 
+		} else if(a > b) {
+			 return 1;  
+		} else {
+			 return 0;   
+		}
+	};
 
 	console.clear();
 
@@ -190,6 +218,44 @@ jQuery(function ($) {
 	/* { selector, attributes, tracks : ([index-x/row][index-y/col] : { x, y }) } */
 	var grids = findGrids(objCss);
 	console.log(grids);
+
+	$.expr[":"]['has-style'] = $.expr.createPseudo(function(arg) {
+		return function( elem ) {
+
+			var a = cssTextAttributeToObj($(elem).attr('style'));
+			var b = cssTextAttributeToObj(arg);
+			var match = false;
+			$.each(a, function(key, value) {
+				$.each(b, function(key2, value2) {
+					if (key == key2 && value == value2) {
+						match = true;
+						return false;
+					}
+				});
+				if (match) {
+					return false;
+				}
+			});
+			return match;
+		};
+	});
+
+	$('[style]:has-style("display:-ms-grid")').each(function () {
+		grids.push({
+			selector: this,
+			attributes: cssTextAttributeToObj($(this).attr('style')),
+			tracks: extractTracks(cssTextAttributeToObj($(this).attr('style')))
+		});
+	});
+
+
+
+
+
+
+
+
+
 
 	function findGrids(objCss) {
 		var grids = [];
@@ -228,6 +294,14 @@ jQuery(function ($) {
 	// apply css
 	$.each(grids, function (i, block) {
 		var gridSize = calculateTrackSpanLength(block.tracks, 1, 1, block.tracks.length, block.tracks[0].length);
+		
+		// Save old style
+		$(block.selector).each(function() {
+			if (!$(this).data('old-style')) {
+				$(this).data('old-style', $(this).attr('style'));
+			}
+		});
+		
 		$(block.selector).css({
 			'position' : 'relative',
 			'box-sizing': 'border-box',
@@ -242,6 +316,13 @@ jQuery(function ($) {
 		console.log($(block.selector).outerHeight());
 		console.log(block.tracks);
 
+		// Save old style
+		$(block.selector).children().each(function() {
+			if (!$(this).data('old-style')) {
+				$(this).data('old-style', $(this).attr('style'));
+			}
+		});
+
 		$(block.selector).children().css({
 			'box-sizing': 'border-box',
 				'position': 'absolute',
@@ -255,21 +336,17 @@ jQuery(function ($) {
 			var selectors = findDefinedSelectors(gridItem);
 
 			// sort specify
-			selectors.sort(function(a, b) {
-				a = getCSSRuleSpecificity(a)
-				b = getCSSRuleSpecificity(b)
-				if (a < b) {
-					 return -1; 
-				} else if(a > b) {
-					 return 1;  
-				} else {
-					 return 0;   
-				}
-			});
+			selectors.sort(sortCSSRuleSpecificity);
 			console.log(selectors);
 			// TODO: merge all attr to find other same attributes
 
 			var attributes = getAttributesBySelector(objCss, selectors.pop());
+
+			var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
+			if (a['-ms-grid-row'] || attributes['-ms-grid-column']) {
+				attributes = $.extend(attributes, a);
+			}
+
 			if (!attributes) return true;
 
 			var row = attributes['-ms-grid-row'] || 1;
@@ -291,21 +368,20 @@ jQuery(function ($) {
 			var selectors = findDefinedSelectors(gridItem);
 
 			// sort specify
-			selectors.sort(function(a, b) {
-				a = getCSSRuleSpecificity(a)
-				b = getCSSRuleSpecificity(b)
-				if (a < b) {
-					 return -1; 
-				} else if(a > b) {
-					 return 1;  
-				} else {
-					 return 0;   
-				}
-			});
+			selectors.sort(sortCSSRuleSpecificity);
 			console.log(selectors);
 			// TODO: merge all attr to find other same attributes
 
 			var attributes = getAttributesBySelector(objCss, selectors.pop());
+
+			var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
+			if (a['-ms-grid-row'] || 
+				attributes['-ms-grid-column'] || 
+				attributes['-ms-grid-column-span'] ||
+				attributes['-ms-grid-row-span']) {
+				attributes = $.extend(attributes, a);
+			}
+
 			if (!attributes) return true;
 
 			var row = attributes['-ms-grid-row'] || 1;
@@ -318,6 +394,7 @@ jQuery(function ($) {
 			console.log(row, column, columnSpan, rowSpan);
 			console.log(size);
 			console.log(pos);
+
 			$(this).css({
 				//top: pos.y,
 				//left: pos.x,
@@ -337,21 +414,20 @@ jQuery(function ($) {
 			var selectors = findDefinedSelectors(gridItem);
 
 			// sort specify
-			selectors.sort(function(a, b) {
-				a = getCSSRuleSpecificity(a)
-				b = getCSSRuleSpecificity(b)
-				if (a < b) {
-					 return -1; 
-				} else if(a > b) {
-					 return 1;  
-				} else {
-					 return 0;   
-				}
-			});
+			selectors.sort(sortCSSRuleSpecificity);
 			console.log(selectors);
 			// TODO: merge all attr to find other same attributes
 
 			var attributes = getAttributesBySelector(objCss, selectors.pop());
+			
+			var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
+			if (a['-ms-grid-row'] || 
+				attributes['-ms-grid-column'] || 
+				attributes['-ms-grid-column-span'] ||
+				attributes['-ms-grid-row-span']) {
+				attributes = $.extend(attributes, a);
+			}
+
 			if (!attributes) return true;
 
 			var row = attributes['-ms-grid-row'] || 1;
