@@ -1,4 +1,4 @@
-/*! CSS3 Finalize - v1.3 - 2013-03-27 - Grid Layout Polyfill
+/*! CSS3 Finalize - v1.4 - 2013-03-28 - Grid Layout Polyfill
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
 // Avoid `console` errors in browsers that lack a console.
@@ -179,6 +179,154 @@ jQuery(function ($) {
 		return false;
 	}
 
+	$.fn.gridLayout = function( method ) {
+
+		this.each(function() {
+			var self = this;
+			if (method == 'refresh') {
+				var stop = false;
+				$.each(grids, function(i, block) {
+					$(block.selector).each(function() {
+						if (self == this) {
+							// gridLayout(element, block);
+
+
+							gl_refresh(self, block);
+
+
+
+							stop = true;
+							return false;
+						}
+					});
+					if (stop) {
+						return false;
+					}
+				});
+			}
+		});
+		return this;
+	};
+
+	function gl_refresh(ele, block) {
+		resetTracks(block.tracks);
+		normalizeFractionWidth($(block.selector).outerWidth(), block.tracks);
+
+		$(block.selector).children().css({
+			'box-sizing': 'border-box',
+				'position': 'absolute',
+			top: 0,
+			left: 0,
+			width: block.tracks[0][0].x,
+			height: block.tracks[0][0].y
+		}).each(function (i, e) {
+			var gridItem = $(this);
+
+			var selectors = findDefinedSelectors(gridItem);
+
+			// sort specify
+			selectors.sort(sortCSSRuleSpecificity);
+			console.log(selectors);
+			// TODO: merge all attr to find other same attributes
+
+			var attributes = getAttributesBySelector(objCss, selectors.pop());
+
+			var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
+			if (a['-ms-grid-row'] || 
+				attributes['-ms-grid-column'] || 
+				attributes['-ms-grid-column-span'] ||
+				attributes['-ms-grid-row-span']) {
+				attributes = $.extend(true, attributes, a);
+			}
+
+			if (!attributes) return true;
+
+			var row = attributes['-ms-grid-row'] || 1;
+			var column = attributes['-ms-grid-column'] || 1;
+			var columnSpan = attributes['-ms-grid-column-span'] || 1;
+			var rowSpan = attributes['-ms-grid-row-span'] || 1;
+
+			var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
+			var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
+			console.log(row, column, columnSpan, rowSpan);
+			console.log(size);
+			console.log(pos);
+
+			$(this).css({
+				//top: pos.y,
+				//left: pos.x,
+				width: size.x,
+				//height: size.y
+			})
+		})
+
+		var height = normalizeFractionHeight($(block.selector).outerHeight(), block.tracks);
+		$(block.selector).css({
+			height: height
+		});
+
+		$(block.selector).children().each(function (i, e) {
+			var gridItem = $(this);
+
+			var selectors = findDefinedSelectors(gridItem);
+
+			// sort specify
+			selectors.sort(sortCSSRuleSpecificity);
+			console.log(selectors);
+			// TODO: merge all attr to find other same attributes
+
+			var attributes = getAttributesBySelector(objCss, selectors.pop());
+			
+			var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
+			if (a['-ms-grid-row'] || 
+				attributes['-ms-grid-column'] || 
+				attributes['-ms-grid-column-span'] ||
+				attributes['-ms-grid-row-span']) {
+				attributes = $.extend(true, attributes, a);
+			}
+
+			if (!attributes) return true;
+
+			var row = attributes['-ms-grid-row'] || 1;
+			var column = attributes['-ms-grid-column'] || 1;
+			var columnSpan = attributes['-ms-grid-column-span'] || 1;
+			var rowSpan = attributes['-ms-grid-row-span'] || 1;
+
+			var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
+			var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
+			console.log(row, column, columnSpan, rowSpan);
+			console.log(size);
+			console.log(pos);
+			$(this).css({
+				top: pos.y,
+				left: pos.x,
+				width: size.x,
+				height: size.y
+			})
+		});
+
+
+
+
+	}
+
+	// set back fr-unit
+	function resetTracks(tracks) {
+		for (var r = 0; r < tracks.length; r++) {
+			for (var c = 0; c < tracks[r].length; c++) {
+				if (tracks[r][c].frX) {
+					tracks[r][c].x = tracks[r][c].frX;
+					delete tracks[r][c].frX;
+				}
+
+				if (tracks[r][c].frY) {
+					tracks[r][c].y = tracks[r][c].frY;
+					delete tracks[r][c].frY;
+				}
+			}
+		}
+	}
+
 	var reSelectorTag = /(^|\s)(?:\w+)/g;
 	var reSelectorClass = /\.[\w\d_-]+/g;
 	var reSelectorId = /#[\w\d_-]+/g;
@@ -240,11 +388,17 @@ jQuery(function ($) {
 		};
 	});
 
-	$('[style]:has-style("display:-ms-grid")').each(function () {
+	// [data-ms-grid] are for IE9
+	$('[style]:has-style("display:-ms-grid"), [data-ms-grid]').each(function () {
+		var attr = cssTextAttributeToObj($(this).attr('style'));
+		// For ie9
+		if (!attr.display) {
+			attr.display = '-ms-grid';
+		}
 		grids.push({
 			selector: this,
-			attributes: cssTextAttributeToObj($(this).attr('style')),
-			tracks: extractTracks(cssTextAttributeToObj($(this).attr('style')))
+			attributes: attr,
+			tracks: extractTracks(attr)
 		});
 	});
 
@@ -344,7 +498,7 @@ jQuery(function ($) {
 
 			var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
 			if (a['-ms-grid-row'] || attributes['-ms-grid-column']) {
-				attributes = $.extend(attributes, a);
+				attributes = $.extend(true, attributes, a);
 			}
 
 			if (!attributes) return true;
@@ -379,7 +533,7 @@ jQuery(function ($) {
 				attributes['-ms-grid-column'] || 
 				attributes['-ms-grid-column-span'] ||
 				attributes['-ms-grid-row-span']) {
-				attributes = $.extend(attributes, a);
+				attributes = $.extend(true, attributes, a);
 			}
 
 			if (!attributes) return true;
@@ -402,7 +556,7 @@ jQuery(function ($) {
 				//height: size.y
 			})
 		})
-		var realHeight = normalizeFractionHeight($(block.selector).outerHeight(), block.tracks);
+		var realHeight = normalizeInlineFractionHeight($(block.selector).outerHeight(), block.tracks);
 		$(block.selector).css({
 			height: realHeight
 		});
@@ -425,7 +579,7 @@ jQuery(function ($) {
 				attributes['-ms-grid-column'] || 
 				attributes['-ms-grid-column-span'] ||
 				attributes['-ms-grid-row-span']) {
-				attributes = $.extend(attributes, a);
+				attributes = $.extend(true, attributes, a);
 			}
 
 			if (!attributes) return true;
@@ -450,6 +604,13 @@ jQuery(function ($) {
 		
 	});
 
+	// Resize event
+	$(window).on('resize', function() {
+		$.each(grids, function(i, block) {
+			$(block.selector).gridLayout('refresh');
+		});
+	});
+
 	function normalizeFractionWidth(width, tracks) {
 
 		for (var r = 0; r < tracks.length; r++) {
@@ -472,6 +633,7 @@ jQuery(function ($) {
 			for (var c = 0; c < tracks[r].length; c++) {
 				if (tracks[r][c].x.indexOf('fr') !== -1) {
 					//console.log(totalWidthWithoutFractions, sumFraction, parseFloat(tracks[r][c].x));
+					tracks[r][c].frX = tracks[r][c].x;
 					tracks[r][c].x = '' + totalWidthWithoutFractions / (sumFraction / parseFloat(tracks[r][c].x));
 				}
 			}
@@ -480,6 +642,36 @@ jQuery(function ($) {
 	}
 
 	function normalizeFractionHeight(height, tracks) {
+
+		for (var c = 0; c < tracks[0].length; c++) {
+			var fractions = [];
+			var totalHeightWithoutFractions = height;
+			for (var r = 0; r < tracks.length; r++) {
+				if (tracks[r][c].y.indexOf('fr') !== -1) {
+					fractions.push(parseFloat(tracks[r][c].y));
+					//console.log(tracks[r]);
+				} else if (tracks[r][c].y.indexOf('px') !== -1) {
+					totalHeightWithoutFractions -= parseFloat(tracks[r][c].y);
+				}
+			}
+
+			// TODO: reduce do not exist in IE8 and lower.
+			var sumFraction = fractions.reduce(function(a, b) {
+				return parseInt(a, 10) + parseInt(b, 10);
+			}, 0);
+
+			for (var r = 0; r < tracks.length; r++) {
+				if (tracks[r][c].y.indexOf('fr') !== -1) {
+					//console.log(totalHeightWithoutFractions, sumFraction, parseFloat(tracks[r][c].x));
+					tracks[r][c].frY = tracks[r][c].y;
+					tracks[r][c].y = '' + totalHeightWithoutFractions / (sumFraction / parseFloat(tracks[r][c].y));
+				}
+			}
+
+		};
+	}
+
+	function normalizeInlineFractionHeight(height, tracks) {
 		var realHeight = height;
 		var readRealHeight = false
 
@@ -513,6 +705,7 @@ jQuery(function ($) {
 			for (var r = 0; r < tracks.length; r++) {
 				if (tracks[r][c].y.indexOf('fr') !== -1) {
 					console.log(totalHeightWithoutFractions, sumFraction, parseFloat(tracks[r][c].y));
+					tracks[r][c].frY = tracks[r][c].y;
 					tracks[r][c].y = '' + totalHeightWithoutFractions / (sumFraction / parseFloat(tracks[r][c].y));
 				}
 			}
@@ -529,7 +722,7 @@ jQuery(function ($) {
 				return false;
 			}
 		})
-		return found;
+		return $.extend(true, {}, found);
 	}
 
 	function calculateTrackSpanLength(tracks, row, column, rowSpan, columnSpan) {

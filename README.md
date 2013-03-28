@@ -22,8 +22,8 @@ This is a very early version and currently a very limited grid spec is covered i
 ### What is covered?
 
 	display: -ms-grid;
-	-ms-grid-columns: 100px 100px 100px; /* Only pixel units */
-    -ms-grid-rows: 100px 100px 100px; /* Only pixel units */
+	-ms-grid-columns: 100px 1fr 100px; /* Only pixel and fraction units */
+	-ms-grid-rows: 100px 1fr 100px; /* Only pixel and fraction units */
 
 	-ms-grid-column: 1;
 	-ms-grid-row: 1;

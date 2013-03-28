@@ -27,12 +27,21 @@ html, body {
 jQuery(function () {
 	// Height 100%
 	$('#MashupGrid1').height( ($('#MashupGrid1').parent().height()) );
+
+	$(window).on('resize', function() {
+		$('#MashupGrid1').height( ($('#MashupGrid1').parent().height()) );
+		$('#MashupGrid1').gridLayout('refresh');
+	});
+
+	// Recalculate grid layout
+	$('#MashupGrid1').gridLayout('refresh');
+
 });
 </script>
 </head>
 <body>
 	
-<div id="MashupGrid1" style="
+<div id="MashupGrid1" data-ms-grid style="
 	display: -ms-grid; 
 	/*width:100%;*/
 	-ms-grid-columns: 1fr 1fr; 
