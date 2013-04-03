@@ -25,16 +25,10 @@ html, body {
 </style>
 <script>
 jQuery(function () {
-	// Height 100%
-	$('#MashupGrid1').height( ($('#MashupGrid1').parent().height()) );
-
 	$(window).on('resize', function() {
 		$('#MashupGrid1').height( ($('#MashupGrid1').parent().height()) );
 		$('#MashupGrid1').gridLayout('refresh');
-	});
-
-	// Recalculate grid layout
-	$('#MashupGrid1').gridLayout('refresh');
+	}).trigger('resize');
 
 });
 </script>

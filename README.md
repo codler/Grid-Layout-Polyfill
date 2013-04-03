@@ -15,9 +15,17 @@ Simply add the script after jQuery
 
 	<script src="grid-layout-polyfill.min.js"></script>
 
+### Options
+
+`$(grid).gridLayout('refresh')` will recalculate existing initiated grid. Useful when for example you have set a new height with JavaScript on the grid.
+
+## Browser support
+
+* IE9+ and all other browsers
+
 ## Limitation
 
-This is a very early version and currently a very limited grid spec is covered in polyfill.
+* IE9: If `display: -ms-grid;` are declared in inline-style, you need to add the attribute `data-ms-grid` on the element, because IE9 removes invalid css value.
 
 ### What is covered?
 
