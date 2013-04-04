@@ -1,4 +1,4 @@
-/*! CSS3 Finalize - v1.6.0 - 2013-04-04 - Grid Layout Polyfill
+/*! Grid Layout Polyfill - v1.7.0 - 2013-04-04 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
 /* --- Other polyfills --- */
@@ -406,8 +406,8 @@ function cssTextAttributeToObj(text) {
 		function extractTracks(attrs) {
 			var cols = attrs['-ms-grid-columns'] || 'auto';
 			var rows = attrs['-ms-grid-rows'] || 'auto';
-			cols = cols.split(' ');
-			rows = rows.split(' ');
+			cols = cols.toLowerCase().split(' ');
+			rows = rows.toLowerCase().split(' ');
 			var tracks = [];
 			$.each(rows, function (x, rv) {
 				tracks[x] = [];
@@ -481,8 +481,11 @@ function cssTextAttributeToObj(text) {
 
 				var row = attributes['-ms-grid-row'] || 1;
 				var column = attributes['-ms-grid-column'] || 1;
-
-				block.tracks[row-1][column-1].item = gridItem;
+				if (block.tracks[row-1][column-1].item) {
+					block.tracks[row-1][column-1].item.add(gridItem);
+				} else {
+					block.tracks[row-1][column-1].item = gridItem;
+				}
 			});
 
 			$(block.selector).children().each(function (i, e) {
@@ -660,67 +663,84 @@ function cssTextAttributeToObj(text) {
 		}
 
 		function normalizeInlineFractionHeight(height, tracks) {
-			var realHeight = height;
-			var readRealHeight = false;
-
+			// Get highest height for each fraction row and normalize each row to 1 in ratio.
+			var fractionRowRealHeights = [];
+			var autoRowRealHeights = [];
 			for (var r = 0; r < tracks.length; r++) {
+				var fractionMaxRowHeight = [0];
+				var autoMaxRowHeight = [0];
 				for (var c = 0; c < tracks[0].length; c++) {
+					var rowHeight = 0;
 					if (tracks[r][c].y.indexOf('fr') !== -1) {
+
+						var fraction = parseFloat(tracks[r][c].y);
+
 						if (tracks[r][c].item) {
 							tracks[r][c].item.height('auto');
-							tracks[r][c].realHeight = tracks[r][c].item.outerHeight(true);
+							//rowHeight = tracks[r][c].item.outerHeight(true);
+							
+							// Get max height of all items
+							rowHeight = Math.max.apply(Math, tracks[r][c].item.map(function() {
+								return $(this).outerHeight(true);
+							}).get());
 						}
-					}
-				}
-			}
 
-			var rowRealHeight = [];
-			for (var r = 0; r < tracks.length; r++) {
-				var max = [];
-				for (var c = 0; c < tracks[0].length; c++) {
-					max.push(tracks[r][c].realHeight || 0);
-				}
-				rowRealHeight[r] = Math.max.apply(Math, max);
-			}
-
-			for (var c = 0; c < tracks[0].length; c++) {
-				var fractions = [];
-				var totalHeightWithoutFractions = height;
-				for (var r = 0; r < tracks.length; r++) {
-					if (tracks[r][c].y.indexOf('fr') !== -1) {
-						fractions.push(parseFloat(tracks[r][c].y));
-						//tracks[r][c].fractionY = parseFloat(tracks[r][c].y);
-						totalHeightWithoutFractions += rowRealHeight[r];
-						/*if (tracks[r][c].item) {
+						fractionMaxRowHeight.push(rowHeight / fraction);
+					} else if (tracks[r][c].y.indexOf('auto') !== -1) {
+						if (tracks[r][c].item) {
 							tracks[r][c].item.height('auto');
-							totalHeightWithoutFractions += rowRealHeight[r];
-							//totalHeightWithoutFractions += tracks[r][c].item.outerHeight(true);
-							tracks[r][c].realHeight = tracks[r][c].item.outerHeight(true);*/
-							/*if (!readRealHeight) {
-								realHeight += tracks[r][c].item.outerHeight(true);
-								readRealHeight = true;
-							}*/
-						/*}*/
-						//console.log(tracks[r]);
-					} else if (tracks[r][c].y.indexOf('px') !== -1) {
-						console.log(tracks[r][c].y);
-						totalHeightWithoutFractions -= parseFloat(tracks[r][c].y);
+							//rowHeight = tracks[r][c].item.outerHeight(true);
+							
+							// Get max height of all items
+							rowHeight = Math.max.apply(Math, tracks[r][c].item.map(function() {
+								return $(this).outerHeight(true);
+							}).get());
+						}
+						autoMaxRowHeight.push(rowHeight);
 					}
 				}
+				fractionRowRealHeights[r] = Math.max.apply(Math, fractionMaxRowHeight);
+				autoRowRealHeights[r] = Math.max.apply(Math, autoMaxRowHeight);
+			}
+			var rowRealHeight = Math.max.apply(Math, fractionRowRealHeights);
 
-				var sumFraction = sumArray(fractions);
 
+			var fractions = [];
+			// Sum all px
+			var totalHeightWithoutFractions = height;
+			// Sum all real height fractions in px
+			var totalRealHeightFractions = 0;
+			var totalRealHeightAuto = 0;
+			for (var r = 0; r < tracks.length; r++) {
+				if (tracks[r][0].y.indexOf('fr') !== -1) {
+					var fraction = parseFloat(tracks[r][0].y);
+					fractions.push(fraction);
+					totalRealHeightFractions += rowRealHeight * fraction;
+				} else if (tracks[r][0].y.indexOf('px') !== -1) {
+					totalHeightWithoutFractions -= parseFloat(tracks[r][0].y);
+				} else if (tracks[r][0].y.indexOf('auto') !== -1) {
+					totalRealHeightAuto += autoRowRealHeights[r];
+				}
+			}
+			totalHeightWithoutFractions += totalRealHeightFractions;
+
+			var sumFraction = sumArray(fractions);
+
+			// Convert fraction to pixel
+			for (var c = 0; c < tracks[0].length; c++) {
 				for (var r = 0; r < tracks.length; r++) {
 					if (tracks[r][c].y.indexOf('fr') !== -1) {
-						console.log(totalHeightWithoutFractions, sumFraction, parseFloat(tracks[r][c].y));
 						tracks[r][c].frY = tracks[r][c].y;
 						tracks[r][c].y = '' + totalHeightWithoutFractions / (sumFraction / parseFloat(tracks[r][c].y));
+					} else if (tracks[r][0].y.indexOf('auto') !== -1) {
+						tracks[r][c].frY = tracks[r][c].y;
+						tracks[r][c].y = '' + autoRowRealHeights[r];
 					}
 				}
 
 			};
 
-			return realHeight + sumArray(rowRealHeight);
+			return height + totalRealHeightFractions + totalRealHeightAuto;
 		}
 
 		function getAttributesBySelector(objCss, selector) {
