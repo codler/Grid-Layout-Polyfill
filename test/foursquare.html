@@ -10,8 +10,8 @@
 <!-- css -->
 
 <!-- javascript -->
-<script src="libs/jquery-1.9.1.min.js"></script>
-<script src="grid-layout-polyfill.js"></script>
+<script src="../libs/jquery-1.9.1.min.js"></script>
+<script src="../grid-layout-polyfill.js"></script>
 
 <style>
 html, body {
@@ -19,26 +19,43 @@ html, body {
 	margin: 0;
 	padding: 0;
 }
-#MashupGrid1 * {
+#grid * {
 	box-sizing: border-box;
 }
 </style>
 <script>
-jQuery(function () {
-	$(window).on('resize', function() {
-		$('#MashupGrid1').height( ($('#MashupGrid1').parent().height()) );
-		$('#MashupGrid1').gridLayout('refresh');
-	}).trigger('resize');
+jQuery(function ($) {
 
+	// Setting height as 100%
+
+	if (!$.support.gridLayout) {
+	
+		$('#grid').gridLayout({
+			'resize' : function() {
+				$(this).height( $(this).parent().height() );
+				$(this).gridLayout('refresh');
+			}
+		}).trigger('gridlayoutresize');
+
+	} else {
+	
+		// Same as above, the above code are more optimized and has 100ms delay.
+		$(window).on('resize', function() {
+			$('#grid').height( ($('#grid').parent().height()) );
+			$('#grid').gridLayout('refresh');
+		}).trigger('resize');
+	}
+
+	
 });
 </script>
 </head>
 <body>
 	
-<div id="MashupGrid1" data-ms-grid style="
+<div id="grid" data-ms-grid style="
 	display: -ms-grid; 
 	/*width:100%;*/
-	-ms-grid-columns: 1fr 1fr; 
+	-ms-grid-columns: 1.5fr 1fr; 
 	-ms-grid-rows: 1fr 1fr;
 	">
 	<div class="gridBox" style="-ms-grid-row:1; background-color: yellow;">

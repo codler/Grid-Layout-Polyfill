@@ -1,4 +1,4 @@
-/*! CSS3 Finalize - v1.5 - 2013-04-03 - Grid Layout Polyfill
+/*! CSS3 Finalize - v1.6.0 - 2013-04-04 - Grid Layout Polyfill
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
 /* --- Other polyfills --- */
@@ -24,39 +24,6 @@
         }
     }
 }());
-if ('function' !== typeof Array.prototype.reduce) {
-  Array.prototype.reduce = function(callback, opt_initialValue){
-    'use strict';
-    if (null === this || 'undefined' === typeof this) {
-      // At the moment all modern browsers, that support strict mode, have
-      // native implementation of Array.prototype.reduce. For instance, IE8
-      // does not support strict mode, so this check is actually useless.
-      throw new TypeError(
-          'Array.prototype.reduce called on null or undefined');
-    }
-    if ('function' !== typeof callback) {
-      throw new TypeError(callback + ' is not a function');
-    }
-    var index = 0, length = this.length >>> 0, value, isValueSet = false;
-    if (1 < arguments.length) {
-      value = opt_initialValue;
-      isValueSet = true;
-    }
-    for ( ; length > index; ++index) {
-      if (!this.hasOwnProperty(index)) continue;
-      if (isValueSet) {
-        value = callback(value, this[index], index, this);
-      } else {
-        value = this[index];
-        isValueSet = true;
-      }
-    }
-    if (!isValueSet) {
-      throw new TypeError('Reduce of empty array with no initial value');
-    }
-    return value;
-  };
-}
 
 /* --- CSS Parser --- */
 function cleanCss(css) {
@@ -151,20 +118,35 @@ function cssTextAttributeToObj(text) {
 
 /* --- Grid Layout polyfill --- */
 (function($) {
+	// Detect grid layout support
+	$.support.gridLayout = document.createElement('div').style['msGridRowAlign'] === '';
+
+	// TODO: Low priority: find a better one to detect IE8 and lower
+	// IE8 or lower
+	var ltIE8 = 'function' !== typeof Array.prototype.reduce;
+
+	if ($.support.gridLayout || ltIE8) {
+		$.fn.gridLayout = function() { return this; };
+		return;
+	}
+	
 	jQuery(function ($) {
 
-		// Detect grid layout support
-		$.support.gridLayout = document.createElement('div').style['msGridRowAlign'] === '';
-
-		if ($.support.gridLayout) {
-			$.fn.gridLayout = function() { return this; };
-			return false;
-		}
-
+		/**
+		 * NOTE: methods and events wont trigger where grid are supported
+		 *
+		 * Methods: refresh
+		 * Events: resize
+		 * 
+		 * Example usage:
+		 * $(grid).gridLayout('refresh')
+		 * $(grid).gridLayout({ resize : function(){} })
+		 */
 		$.fn.gridLayout = function( method ) {
-
 			return this.each(function() {
 				var self = this;
+
+				// Method
 				if (method == 'refresh') {
 					var stop = false;
 					$.each(grids, function(i, block) {
@@ -172,10 +154,7 @@ function cssTextAttributeToObj(text) {
 							if (self == this) {
 								// gridLayout(element, block);
 
-
 								gl_refresh(self, block);
-
-
 
 								stop = true;
 								return false;
@@ -185,6 +164,15 @@ function cssTextAttributeToObj(text) {
 							return false;
 						}
 					});
+
+				// TODO: Should this be outside the this.each loop?
+				// Events or Options
+				} else if (typeof method === 'object') {
+					if (method.resize) {
+						$(self).on('gridlayoutresize', function() {
+							method.resize.call(self);
+						});
+					}
 				}
 			});
 		};
@@ -333,6 +321,11 @@ function cssTextAttributeToObj(text) {
 			} else {
 				 return 0;   
 			}
+		};
+		var sumArray = function(arr) {
+			return arr.reduce(function(a, b) {
+				return parseFloat(a) + parseFloat(b);
+			}, 0);
 		};
 
 		console.clear();
@@ -492,14 +485,7 @@ function cssTextAttributeToObj(text) {
 				block.tracks[row-1][column-1].item = gridItem;
 			});
 
-			$(block.selector).children().css({
-				'box-sizing': 'border-box',
-					'position': 'absolute',
-				top: 0,
-				left: 0,
-				width: block.tracks[0][0].x,
-				height: block.tracks[0][0].y
-			}).each(function (i, e) {
+			$(block.selector).children().each(function (i, e) {
 				var gridItem = $(this);
 
 				var selectors = findDefinedSelectors(gridItem);
@@ -589,14 +575,34 @@ function cssTextAttributeToObj(text) {
 
 		// Resize event
 		var resizeTimer;
-		$(window).on('resize', function() {
+
+		function onResize() {
+			$.each(grids, function(i, block) {
+				$(block.selector).gridLayout('refresh').trigger('gridlayoutresize');
+			});
+		}
+
+		function hasVerticalScrollBar() {
+			return $(document).height() > $(window).height();
+		}
+
+		$(window).on('resize', function(ev, param) {
+			var self = this;
 			clearTimeout(resizeTimer);
 			resizeTimer = setTimeout(function() {
-				$.each(grids, function(i, block) {
-					$(block.selector).gridLayout('refresh');
-				});
-				
-			},100);
+				var verticalScrollBarVisible = false;
+				// Check if vertical scrollbar exist
+				if (hasVerticalScrollBar()) { 
+					verticalScrollBarVisible = true;
+				}
+
+				onResize();
+
+				// Recalculate if verticalscrollbar visibility changed during onResize.
+				if (!hasVerticalScrollBar() && verticalScrollBarVisible) {
+					$(self).trigger('resize');
+				}
+			}, 100);
 		});
 
 		function normalizeFractionWidth(width, tracks) {
@@ -613,10 +619,7 @@ function cssTextAttributeToObj(text) {
 					}
 				}
 
-				// TODO: reduce do not exist in IE8 and lower.
-				var sumFraction = fractions.reduce(function(a, b) {
-					return parseInt(a, 10) + parseInt(b, 10);
-				}, 0);
+				var sumFraction = sumArray(fractions);
 
 				for (var c = 0; c < tracks[r].length; c++) {
 					if (tracks[r][c].x.indexOf('fr') !== -1) {
@@ -643,10 +646,7 @@ function cssTextAttributeToObj(text) {
 					}
 				}
 
-				// TODO: reduce do not exist in IE8 and lower.
-				var sumFraction = fractions.reduce(function(a, b) {
-					return parseInt(a, 10) + parseInt(b, 10);
-				}, 0);
+				var sumFraction = sumArray(fractions);
 
 				for (var r = 0; r < tracks.length; r++) {
 					if (tracks[r][c].y.indexOf('fr') !== -1) {
@@ -661,7 +661,27 @@ function cssTextAttributeToObj(text) {
 
 		function normalizeInlineFractionHeight(height, tracks) {
 			var realHeight = height;
-			var readRealHeight = false
+			var readRealHeight = false;
+
+			for (var r = 0; r < tracks.length; r++) {
+				for (var c = 0; c < tracks[0].length; c++) {
+					if (tracks[r][c].y.indexOf('fr') !== -1) {
+						if (tracks[r][c].item) {
+							tracks[r][c].item.height('auto');
+							tracks[r][c].realHeight = tracks[r][c].item.outerHeight(true);
+						}
+					}
+				}
+			}
+
+			var rowRealHeight = [];
+			for (var r = 0; r < tracks.length; r++) {
+				var max = [];
+				for (var c = 0; c < tracks[0].length; c++) {
+					max.push(tracks[r][c].realHeight || 0);
+				}
+				rowRealHeight[r] = Math.max.apply(Math, max);
+			}
 
 			for (var c = 0; c < tracks[0].length; c++) {
 				var fractions = [];
@@ -670,14 +690,17 @@ function cssTextAttributeToObj(text) {
 					if (tracks[r][c].y.indexOf('fr') !== -1) {
 						fractions.push(parseFloat(tracks[r][c].y));
 						//tracks[r][c].fractionY = parseFloat(tracks[r][c].y);
-						if (tracks[r][c].item) {
+						totalHeightWithoutFractions += rowRealHeight[r];
+						/*if (tracks[r][c].item) {
 							tracks[r][c].item.height('auto');
-							totalHeightWithoutFractions += tracks[r][c].item.outerHeight(true);
-							if (!readRealHeight) {
+							totalHeightWithoutFractions += rowRealHeight[r];
+							//totalHeightWithoutFractions += tracks[r][c].item.outerHeight(true);
+							tracks[r][c].realHeight = tracks[r][c].item.outerHeight(true);*/
+							/*if (!readRealHeight) {
 								realHeight += tracks[r][c].item.outerHeight(true);
 								readRealHeight = true;
-							}
-						}
+							}*/
+						/*}*/
 						//console.log(tracks[r]);
 					} else if (tracks[r][c].y.indexOf('px') !== -1) {
 						console.log(tracks[r][c].y);
@@ -685,10 +708,7 @@ function cssTextAttributeToObj(text) {
 					}
 				}
 
-				// TODO: reduce do not exist in IE8 and lower.
-				var sumFraction = fractions.reduce(function(a, b) {
-					return parseInt(a, 10) + parseInt(b, 10);
-				}, 0);
+				var sumFraction = sumArray(fractions);
 
 				for (var r = 0; r < tracks.length; r++) {
 					if (tracks[r][c].y.indexOf('fr') !== -1) {
@@ -699,7 +719,8 @@ function cssTextAttributeToObj(text) {
 				}
 
 			};
-			return realHeight;
+
+			return realHeight + sumArray(rowRealHeight);
 		}
 
 		function getAttributesBySelector(objCss, selector) {
@@ -722,13 +743,23 @@ function cssTextAttributeToObj(text) {
 			};
 			for (var r = 0; r < rowSpan; r++) {
 				// TODO calc "fr"-unit
-				if (tracks[row + r][column].y.indexOf('fr') === -1) {
+				/*
+				if ((/^\d+(\.\d+)?(px)?$/.test(tracks[row + r][column].y)) != (tracks[row + r][column].y.indexOf('fr') === -1)) {
+					console.log('---------------------------------------');
+					console.log(tracks[row + r][column].y);
+				}*/
+				if (/^\d+(\.\d+)?(px)?$/.test(tracks[row + r][column].y)) {
 					length.y += parseFloat(tracks[row + r][column].y);
 				}
 			}
 			for (var c = 0; c < columnSpan; c++) {
 				// TODO calc "fr"-unit
-				if (tracks[row][column + c].x.indexOf('fr') === -1) {
+				/*
+				if ((/^\d+(\.\d+)?(px)?$/.test(tracks[row][column + c].x)) != (tracks[row][column + c].x.indexOf('fr') === -1)) {
+					console.log('---------------------------------------');
+					console.log(tracks[row][column + c].x);
+				}*/
+				if (/^\d+(\.\d+)?(px)?$/.test(tracks[row][column + c].x)) {
 					length.x += parseFloat(tracks[row][column + c].x);
 				}
 
