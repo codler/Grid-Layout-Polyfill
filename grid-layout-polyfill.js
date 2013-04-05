@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.8.0 - 2013-04-05 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.9.0 - 2013-04-05 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
 /* --- Other polyfills --- */
@@ -326,10 +326,11 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 
 			if (cssTextAttributeToObj($(block.selector).data('old-style')).height) {
 
-				/*var realHeight = */normalizeFractionHeight(parseFloat(cssTextAttributeToObj($(block.selector).data('old-style')).height), block.tracks);
-				/*$(block.selector).css({
+				var realHeight = normalizeFractionHeight(parseFloat(cssTextAttributeToObj($(block.selector).data('old-style')).height), block.tracks);
+				$(block.selector).css({
 					height: realHeight
-				});*/
+				});
+				$(block.selector).data('recent-height', realHeight);
 			} else {
 				var realHeight = normalizeInlineFractionHeight($(block.selector).outerHeight(), block.tracks);
 				$(block.selector).css({
@@ -652,10 +653,11 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 
 			if (cssTextAttributeToObj($(block.selector).data('old-style')).height) {
 
-				/*var realHeight = */normalizeFractionHeight(parseFloat(cssTextAttributeToObj($(block.selector).data('old-style')).height), block.tracks);
-				/*$(block.selector).css({
+				var realHeight = normalizeFractionHeight(parseFloat(cssTextAttributeToObj($(block.selector).data('old-style')).height), block.tracks);
+				$(block.selector).css({
 					height: realHeight
-				});*/
+				});
+				$(block.selector).data('recent-height', realHeight);
 			} else {
 				var realHeight = normalizeInlineFractionHeight($(block.selector).outerHeight(), block.tracks);
 				$(block.selector).css({
@@ -811,6 +813,8 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 				}
 
 			};
+
+			return (availableSpace < 0) ? width + Math.abs(availableSpace) : width;
 		}
 
 		function normalizeFractionHeight(height, tracks) {
@@ -888,6 +892,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 
 			};
 
+			return (availableSpace < 0) ? height + Math.abs(availableSpace) : height;
 		}
 
 		function normalizeInlineFractionHeight(height, tracks) {
