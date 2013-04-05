@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.7.0 - 2013-04-04 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.8.0 - 2013-04-05 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
 /* --- Other polyfills --- */
@@ -95,7 +95,10 @@ function cssTextToObj(text) {
 }
 
 function cssTextAttributeToObj(text) {
-	text = cleanCss(text || '');
+	if (typeof text != 'string') {
+		text = '';
+	}
+	text = cleanCss(text);
 
 	// Data URI fix
 	var attribute;
@@ -116,6 +119,40 @@ function cssTextAttributeToObj(text) {
 	return objAttribute;
 }
 
+function cssObjToText(obj, prettyfy, indentLevel) {
+	var text = '';
+	prettyfy = prettyfy || false;
+	indentLevel = indentLevel || 1; 
+	$.each(obj, function(i, block) {
+		if (prettyfy) text += Array(indentLevel).join('  ');
+		text += block.selector + '{';
+		if ($.isArray(block.attributes)) {
+			if (prettyfy) text += '\r\n' + Array(indentLevel).join('  ');
+			text += $.cssFinalize.cssObjToText(block.attributes, prettyfy, indentLevel+1);
+		} else {
+			$.each(block.attributes, function(property, value) {
+				if (prettyfy) text += '\r\n' + Array(indentLevel + 1).join('  ');
+				text += property + ':' + value + ';';
+			});
+			if (prettyfy) text += '\r\n' + Array(indentLevel).join('  ');
+		}
+		text += '}';
+		if (prettyfy) text += '\r\n';
+	});
+	return text;
+}
+
+function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
+	var text = '';
+	prettyfy = prettyfy || false;
+	indentLevel = indentLevel || 1; 
+	$.each(obj, function(property, value) {
+		if (prettyfy) text += '\r\n' + Array(indentLevel + 1).join('  ');
+		text += property + ':' + value + ';';
+	});
+	return text;
+}
+
 /* --- Grid Layout polyfill --- */
 (function($) {
 	// Detect grid layout support
@@ -129,6 +166,12 @@ function cssTextAttributeToObj(text) {
 		$.fn.gridLayout = function() { return this; };
 		return;
 	}
+
+	function log(o) {
+		console.log(o);
+	}
+
+	//console.clear();
 	
 	jQuery(function ($) {
 
@@ -179,7 +222,59 @@ function cssTextAttributeToObj(text) {
 
 		function gl_refresh(ele, block) {
 			resetTracks(block.tracks);
-			normalizeFractionWidth($(block.selector).outerWidth(), block.tracks);
+
+			var sameHeight = true;
+			if ($(block.selector).data('recent-height')) {
+				var recentHeight = $(block.selector).data('recent-height');
+
+				if (parseFloat($(block.selector).outerHeight()) != recentHeight) {
+					sameHeight = false;
+
+					// Save old style
+					$(block.selector).each(function() {
+						var gridItem = $(this);
+
+						var selectors = findDefinedSelectors(gridItem);
+
+						// sort specify
+						selectors.sort(sortCSSRuleSpecificity);
+						
+						// TODO: merge all attr to find other same attributes
+
+						var attributes = getAttributesBySelector(objCss, selectors.pop());
+
+						var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
+						if (/*a['width'] || */
+							a['height']) {
+							attributes = $.extend(true, attributes, a);
+						}
+
+						var style = cssTextAttributeToObj($(this).attr('style'));
+						if (attributes) {
+							/*
+							if (attributes.width && !style.width) {
+								style.width = attributes.width;
+							}*/
+							if (attributes.height && !style.height) {
+								style.height = attributes.height;
+							}
+						}
+
+						$(this).data('old-style', cssObjToTextAttribute(style));
+
+					});
+				}
+			}
+
+			var gridSize = calculateTrackSpanLength(block.tracks, 1, 1, block.tracks.length, block.tracks[0].length);
+			
+			$(block.selector).css({
+				'position' : 'relative',
+				'box-sizing': 'border-box',
+				width: (block.attributes.display == '-ms-grid') ? '100%' : gridSize.x,
+				height: gridSize.y
+			});
+
 
 			$(block.selector).children().css({
 				'box-sizing': 'border-box',
@@ -195,16 +290,16 @@ function cssTextAttributeToObj(text) {
 
 				// sort specify
 				selectors.sort(sortCSSRuleSpecificity);
-				console.log(selectors);
+				
 				// TODO: merge all attr to find other same attributes
 
 				var attributes = getAttributesBySelector(objCss, selectors.pop());
 
 				var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
 				if (a['-ms-grid-row'] || 
-					attributes['-ms-grid-column'] || 
-					attributes['-ms-grid-column-span'] ||
-					attributes['-ms-grid-row-span']) {
+					a['-ms-grid-column'] || 
+					a['-ms-grid-column-span'] ||
+					a['-ms-grid-row-span']) {
 					attributes = $.extend(true, attributes, a);
 				}
 
@@ -217,9 +312,6 @@ function cssTextAttributeToObj(text) {
 
 				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
 				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
-				console.log(row, column, columnSpan, rowSpan);
-				console.log(size);
-				console.log(pos);
 
 				$(this).css({
 					//top: pos.y,
@@ -229,10 +321,22 @@ function cssTextAttributeToObj(text) {
 				})
 			})
 
-			var height = normalizeFractionHeight($(block.selector).outerHeight(), block.tracks);
-			$(block.selector).css({
-				height: height
-			});
+			normalizeFractionWidth($(block.selector).outerWidth(), block.tracks);
+
+
+			if (cssTextAttributeToObj($(block.selector).data('old-style')).height) {
+
+				/*var realHeight = */normalizeFractionHeight(parseFloat(cssTextAttributeToObj($(block.selector).data('old-style')).height), block.tracks);
+				/*$(block.selector).css({
+					height: realHeight
+				});*/
+			} else {
+				var realHeight = normalizeInlineFractionHeight($(block.selector).outerHeight(), block.tracks);
+				$(block.selector).css({
+					height: realHeight
+				});
+				$(block.selector).data('recent-height', realHeight);
+			}
 
 			$(block.selector).children().each(function (i, e) {
 				var gridItem = $(this);
@@ -241,16 +345,16 @@ function cssTextAttributeToObj(text) {
 
 				// sort specify
 				selectors.sort(sortCSSRuleSpecificity);
-				console.log(selectors);
+				
 				// TODO: merge all attr to find other same attributes
 
 				var attributes = getAttributesBySelector(objCss, selectors.pop());
 				
 				var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
 				if (a['-ms-grid-row'] || 
-					attributes['-ms-grid-column'] || 
-					attributes['-ms-grid-column-span'] ||
-					attributes['-ms-grid-row-span']) {
+					a['-ms-grid-column'] || 
+					a['-ms-grid-column-span'] ||
+					a['-ms-grid-row-span']) {
 					attributes = $.extend(true, attributes, a);
 				}
 
@@ -263,9 +367,7 @@ function cssTextAttributeToObj(text) {
 
 				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
 				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
-				console.log(row, column, columnSpan, rowSpan);
-				console.log(size);
-				console.log(pos);
+
 				$(this).css({
 					top: pos.y,
 					left: pos.x,
@@ -328,18 +430,16 @@ function cssTextAttributeToObj(text) {
 			}, 0);
 		};
 
-		console.clear();
-
 		var styles = $('style').map(function() {
 			return $(this).html();
 		}).get().join('');
 
 		var objCss = cssTextToObj(styles);
-		console.log(objCss);
+		log(objCss);
 
 		/* { selector, attributes, tracks : ([index-x/row][index-y/col] : { x, y }) } */
 		var grids = findGrids(objCss);
-		console.log(grids);
+		log(grids);
 
 		$.expr[":"]['has-style'] = $.expr.createPseudo(function(arg) {
 			return function( elem ) {
@@ -428,7 +528,34 @@ function cssTextAttributeToObj(text) {
 			// Save old style
 			$(block.selector).each(function() {
 				if (!$(this).data('old-style')) {
-					$(this).data('old-style', $(this).attr('style'));
+					var gridItem = $(this);
+
+					var selectors = findDefinedSelectors(gridItem);
+
+					// sort specify
+					selectors.sort(sortCSSRuleSpecificity);
+					
+					// TODO: merge all attr to find other same attributes
+
+					var attributes = getAttributesBySelector(objCss, selectors.pop());
+
+					var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
+					if (a['width'] || 
+						a['height']) {
+						attributes = $.extend(true, attributes, a);
+					}
+
+					var style = cssTextAttributeToObj($(this).attr('style'));
+					if (attributes) {
+						if (attributes.width && !style.width) {
+							style.width = attributes.width;
+						}
+						if (attributes.height && !style.height) {
+							style.height = attributes.height;
+						}
+					}
+
+					$(this).data('old-style', cssObjToTextAttribute(style));
 				}
 			});
 			
@@ -439,12 +566,7 @@ function cssTextAttributeToObj(text) {
 				height: gridSize.y
 			});
 
-			/*block.tracks = */normalizeFractionWidth($(block.selector).outerWidth(), block.tracks);
 			
-
-			console.log($(block.selector).outerWidth());
-			console.log($(block.selector).outerHeight());
-			console.log(block.tracks);
 
 			// Save old style
 			$(block.selector).children().each(function() {
@@ -467,13 +589,13 @@ function cssTextAttributeToObj(text) {
 
 				// sort specify
 				selectors.sort(sortCSSRuleSpecificity);
-				console.log(selectors);
+				
 				// TODO: merge all attr to find other same attributes
 
 				var attributes = getAttributesBySelector(objCss, selectors.pop());
 
 				var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
-				if (a['-ms-grid-row'] || attributes['-ms-grid-column']) {
+				if (a['-ms-grid-row'] || a['-ms-grid-column']) {
 					attributes = $.extend(true, attributes, a);
 				}
 
@@ -495,16 +617,16 @@ function cssTextAttributeToObj(text) {
 
 				// sort specify
 				selectors.sort(sortCSSRuleSpecificity);
-				console.log(selectors);
+				
 				// TODO: merge all attr to find other same attributes
 
 				var attributes = getAttributesBySelector(objCss, selectors.pop());
 
 				var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
 				if (a['-ms-grid-row'] || 
-					attributes['-ms-grid-column'] || 
-					attributes['-ms-grid-column-span'] ||
-					attributes['-ms-grid-row-span']) {
+					a['-ms-grid-column'] || 
+					a['-ms-grid-column-span'] ||
+					a['-ms-grid-row-span']) {
 					attributes = $.extend(true, attributes, a);
 				}
 
@@ -517,9 +639,6 @@ function cssTextAttributeToObj(text) {
 
 				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
 				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
-				console.log(row, column, columnSpan, rowSpan);
-				console.log(size);
-				console.log(pos);
 
 				$(this).css({
 					//top: pos.y,
@@ -528,10 +647,22 @@ function cssTextAttributeToObj(text) {
 					//height: size.y
 				})
 			})
-			var realHeight = normalizeInlineFractionHeight($(block.selector).outerHeight(), block.tracks);
-			$(block.selector).css({
-				height: realHeight
-			});
+
+			/*block.tracks = */normalizeFractionWidth($(block.selector).outerWidth(), block.tracks);
+
+			if (cssTextAttributeToObj($(block.selector).data('old-style')).height) {
+
+				/*var realHeight = */normalizeFractionHeight(parseFloat(cssTextAttributeToObj($(block.selector).data('old-style')).height), block.tracks);
+				/*$(block.selector).css({
+					height: realHeight
+				});*/
+			} else {
+				var realHeight = normalizeInlineFractionHeight($(block.selector).outerHeight(), block.tracks);
+				$(block.selector).css({
+					height: realHeight
+				});
+				$(block.selector).data('recent-height', realHeight);
+			}
 
 
 			$(block.selector).children().each(function (i, e) {
@@ -541,16 +672,16 @@ function cssTextAttributeToObj(text) {
 
 				// sort specify
 				selectors.sort(sortCSSRuleSpecificity);
-				console.log(selectors);
+				
 				// TODO: merge all attr to find other same attributes
 
 				var attributes = getAttributesBySelector(objCss, selectors.pop());
 				
 				var a = cssTextAttributeToObj(gridItem.data('old-style') || gridItem.attr('style'));
 				if (a['-ms-grid-row'] || 
-					attributes['-ms-grid-column'] || 
-					attributes['-ms-grid-column-span'] ||
-					attributes['-ms-grid-row-span']) {
+					a['-ms-grid-column'] || 
+					a['-ms-grid-column-span'] ||
+					a['-ms-grid-row-span']) {
 					attributes = $.extend(true, attributes, a);
 				}
 
@@ -563,9 +694,7 @@ function cssTextAttributeToObj(text) {
 
 				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
 				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
-				console.log(row, column, columnSpan, rowSpan);
-				console.log(size);
-				console.log(pos);
+
 				$(this).css({
 					top: pos.y,
 					left: pos.x,
@@ -609,26 +738,75 @@ function cssTextAttributeToObj(text) {
 		});
 
 		function normalizeFractionWidth(width, tracks) {
-
-			for (var r = 0; r < tracks.length; r++) {
-				var fractions = [];
-				var totalWidthWithoutFractions = width;
-				for (var c = 0; c < tracks[r].length; c++) {
+			// Get highest width for each fraction row and normalize each row to 1 in ratio.
+			var fractionRowRealWidths = [];
+			var autoRowRealWidths = [];
+			for (var c = 0; c < tracks[0].length; c++) {
+				var fractionMaxRowWidth = [0];
+				var autoMaxRowWidth = [0];
+				for (var r = 0; r < tracks.length; r++) {
+					var rowWidth = 0;
 					if (tracks[r][c].x.indexOf('fr') !== -1) {
-						fractions.push(parseFloat(tracks[r][c].x));
-						//console.log(tracks[r]);
-					} else if (tracks[r][c].x.indexOf('px') !== -1) {
-						totalWidthWithoutFractions -= parseFloat(tracks[r][c].x);
+
+						var fraction = parseFloat(tracks[r][c].x);
+
+						if (tracks[r][c].item) {
+							tracks[r][c].item.width('auto');
+							//rowHeight = tracks[r][c].item.outerHeight(true);
+							
+							// Get max height of all items
+							rowWidth = Math.max.apply(Math, tracks[r][c].item.map(function() {
+								return $(this).outerWidth(true);
+							}).get());
+						}
+
+						fractionMaxRowWidth.push(rowWidth / fraction);
+					} else if (tracks[r][c].x.indexOf('auto') !== -1) {
+						if (tracks[r][c].item) {
+							tracks[r][c].item.width('auto');
+							//rowHeight = tracks[r][c].item.outerHeight(true);
+							
+							// Get max height of all items
+							rowWidth = Math.max.apply(Math, tracks[r][c].item.map(function() {
+								return $(this).outerWidth(true);
+							}).get());
+						}
+						autoMaxRowWidth.push(rowWidth);
 					}
 				}
+				fractionRowRealWidths[c] = Math.max.apply(Math, fractionMaxRowWidth);
+				autoRowRealWidths[c] = Math.max.apply(Math, autoMaxRowWidth);
+			}
+			var rowRealWidth = Math.max.apply(Math, fractionRowRealWidths);
 
-				var sumFraction = sumArray(fractions);
+			var fractions = [];
+			var availableSpace = width;
+			for (var c = 0; c < tracks[0].length; c++) {
+				if (tracks[0][c].x.indexOf('fr') !== -1) {
+					var fraction = parseFloat(tracks[0][c].x);
+					fractions.push(fraction);
+				} else if (tracks[0][c].x.indexOf('px') !== -1) {
+					availableSpace -= parseFloat(tracks[0][c].x);
+				}
+			}
 
-				for (var c = 0; c < tracks[r].length; c++) {
+			availableSpace -= sumArray(autoRowRealWidths);
+
+			var sumFraction = sumArray(fractions);
+
+			// Convert auto to pixel
+			for (var r = 0; r < tracks.length; r++) {
+				for (var c = 0; c < tracks[0].length; c++) {
 					if (tracks[r][c].x.indexOf('fr') !== -1) {
-						//console.log(totalWidthWithoutFractions, sumFraction, parseFloat(tracks[r][c].x));
 						tracks[r][c].frX = tracks[r][c].x;
-						tracks[r][c].x = '' + totalWidthWithoutFractions / (sumFraction / parseFloat(tracks[r][c].x));
+						if (availableSpace > 0) {
+							tracks[r][c].x = '' + availableSpace / (sumFraction / parseFloat(tracks[r][c].x));
+						} else {
+							tracks[r][c].x = '' + 0;
+						}
+					} else if (tracks[r][c].x.indexOf('auto') !== -1) {
+						tracks[r][c].frX = tracks[r][c].x;
+						tracks[r][c].x = '' + autoRowRealWidths[c];
 					}
 				}
 
@@ -636,30 +814,80 @@ function cssTextAttributeToObj(text) {
 		}
 
 		function normalizeFractionHeight(height, tracks) {
-
-			for (var c = 0; c < tracks[0].length; c++) {
-				var fractions = [];
-				var totalHeightWithoutFractions = height;
-				for (var r = 0; r < tracks.length; r++) {
+			// Get highest height for each fraction row and normalize each row to 1 in ratio.
+			var fractionRowRealHeights = [];
+			var autoRowRealHeights = [];
+			for (var r = 0; r < tracks.length; r++) {
+				var fractionMaxRowHeight = [0];
+				var autoMaxRowHeight = [0];
+				for (var c = 0; c < tracks[0].length; c++) {
+					var rowHeight = 0;
 					if (tracks[r][c].y.indexOf('fr') !== -1) {
-						fractions.push(parseFloat(tracks[r][c].y));
-						//console.log(tracks[r]);
-					} else if (tracks[r][c].y.indexOf('px') !== -1) {
-						totalHeightWithoutFractions -= parseFloat(tracks[r][c].y);
+
+						var fraction = parseFloat(tracks[r][c].y);
+
+						if (tracks[r][c].item) {
+							tracks[r][c].item.height('auto');
+							//rowHeight = tracks[r][c].item.outerHeight(true);
+							
+							// Get max height of all items
+							rowHeight = Math.max.apply(Math, tracks[r][c].item.map(function() {
+								return $(this).outerHeight(true);
+							}).get());
+						}
+
+						fractionMaxRowHeight.push(rowHeight / fraction);
+					} else if (tracks[r][c].y.indexOf('auto') !== -1) {
+						if (tracks[r][c].item) {
+							tracks[r][c].item.height('auto');
+							//rowHeight = tracks[r][c].item.outerHeight(true);
+							
+							// Get max height of all items
+							rowHeight = Math.max.apply(Math, tracks[r][c].item.map(function() {
+								return $(this).outerHeight(true);
+							}).get());
+						}
+						autoMaxRowHeight.push(rowHeight);
 					}
 				}
+				fractionRowRealHeights[r] = Math.max.apply(Math, fractionMaxRowHeight);
+				autoRowRealHeights[r] = Math.max.apply(Math, autoMaxRowHeight);
+			}
+			var rowRealHeight = Math.max.apply(Math, fractionRowRealHeights);
 
-				var sumFraction = sumArray(fractions);
+			var fractions = [];
+			var availableSpace = height;
+			for (var r = 0; r < tracks.length; r++) {
+				if (tracks[r][0].y.indexOf('fr') !== -1) {
+					var fraction = parseFloat(tracks[r][0].y);
+					fractions.push(fraction);
+				} else if (tracks[r][0].y.indexOf('px') !== -1) {
+					availableSpace -= parseFloat(tracks[r][0].y);
+				}
+			}
 
+			availableSpace -= sumArray(autoRowRealHeights);
+
+			var sumFraction = sumArray(fractions);
+
+			// Convert auto to pixel
+			for (var c = 0; c < tracks[0].length; c++) {
 				for (var r = 0; r < tracks.length; r++) {
 					if (tracks[r][c].y.indexOf('fr') !== -1) {
-						//console.log(totalHeightWithoutFractions, sumFraction, parseFloat(tracks[r][c].x));
 						tracks[r][c].frY = tracks[r][c].y;
-						tracks[r][c].y = '' + totalHeightWithoutFractions / (sumFraction / parseFloat(tracks[r][c].y));
+						if (availableSpace > 0) {
+							tracks[r][c].y = '' + availableSpace / (sumFraction / parseFloat(tracks[r][c].y));
+						} else {
+							tracks[r][c].y = '' + 0;
+						}
+					} else if (tracks[r][c].y.indexOf('auto') !== -1) {
+						tracks[r][c].frY = tracks[r][c].y;
+						tracks[r][c].y = '' + autoRowRealHeights[r];
 					}
 				}
 
 			};
+
 		}
 
 		function normalizeInlineFractionHeight(height, tracks) {
@@ -732,7 +960,7 @@ function cssTextAttributeToObj(text) {
 					if (tracks[r][c].y.indexOf('fr') !== -1) {
 						tracks[r][c].frY = tracks[r][c].y;
 						tracks[r][c].y = '' + totalHeightWithoutFractions / (sumFraction / parseFloat(tracks[r][c].y));
-					} else if (tracks[r][0].y.indexOf('auto') !== -1) {
+					} else if (tracks[r][c].y.indexOf('auto') !== -1) {
 						tracks[r][c].frY = tracks[r][c].y;
 						tracks[r][c].y = '' + autoRowRealHeights[r];
 					}
