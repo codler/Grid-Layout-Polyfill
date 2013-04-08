@@ -17,12 +17,17 @@ Simply add the script after jQuery
 
 ### Options
 
+**Methods**
 * `$(grid).gridLayout('refresh')` will recalculate existing initiated grid. Useful when for example you have set a new height with JavaScript on the grid.
 
-	$(grid).gridLayout({
-		// Resize event, triggers when window resize with 100ms delay to increase performance
-		'resize' : function() {} 
-	})
+**Events**
+```
+$(grid).gridLayout({
+	// Resize event, triggers when window resize with 100ms delay to increase performance
+	'resize' : function() {} 
+})
+```
+	
 
 ## Browser support
 
