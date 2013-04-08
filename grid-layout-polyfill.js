@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.9.0 - 2013-04-05 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.10.0 - 2013-04-08 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
 /* --- Other polyfills --- */
@@ -169,6 +169,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 
 	function log(o) {
 		console.log(o);
+		console.trace();
 	}
 
 	//console.clear();
@@ -436,11 +437,10 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 		}).get().join('');
 
 		var objCss = cssTextToObj(styles);
-		log(objCss);
 
 		/* { selector, attributes, tracks : ([index-x/row][index-y/col] : { x, y }) } */
 		var grids = findGrids(objCss);
-		log(grids);
+		
 
 		$.expr[":"]['has-style'] = $.expr.createPseudo(function(arg) {
 			return function( elem ) {
@@ -473,7 +473,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 			grids.push({
 				selector: this,
 				attributes: attr,
-				tracks: extractTracks(attr)
+				tracks: extractTracks(this, attr)
 			});
 		});
 
@@ -494,7 +494,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 						grids.push({
 							selector: block.selector,
 							attributes: block.attributes,
-							tracks: extractTracks(block.attributes)
+							tracks: extractTracks(block.selector, block.attributes)
 						});
 
 						//grids.push(block);
@@ -504,23 +504,70 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 			return grids;
 		}
 
-		function extractTracks(attrs) {
+		function extractTracks(selector, attrs) {
 			var cols = attrs['-ms-grid-columns'] || 'auto';
 			var rows = attrs['-ms-grid-rows'] || 'auto';
 			cols = cols.toLowerCase().split(' ');
 			rows = rows.toLowerCase().split(' ');
+
+			
+			// Find implicit columns and rows
+			// http://www.w3.org/TR/2012/WD-css3-grid-layout-20120322/#implicit-columns-and-rows
+			$(selector).children().each(function (i, e) {
+				var gridItem = $(this);
+
+				var selectors = findDefinedSelectors(gridItem);
+
+				// sort specify
+				selectors.sort(sortCSSRuleSpecificity);
+				
+				// TODO: merge all attr to find other same attributes
+
+				var attributes = getAttributesBySelector(objCss, selectors.pop());
+
+				var a = cssTextAttributeToObj(gridItem.attr('style'));
+				if (a['-ms-grid-row'] || 
+					a['-ms-grid-column'] || 
+					a['-ms-grid-column-span'] ||
+					a['-ms-grid-row-span']) {
+					attributes = $.extend(true, attributes, a);
+				}
+
+				if (!attributes) return true;
+
+				var row = attributes['-ms-grid-row'] || 1;
+				var column = attributes['-ms-grid-column'] || 1;
+				var columnSpan = attributes['-ms-grid-column-span'] || 1;
+				var rowSpan = attributes['-ms-grid-row-span'] || 1;
+
+				if (cols.length < column) {
+					cols[column] = 'auto';
+				}
+				if (cols.length < (column - 1) + columnSpan) {
+					cols[(column - 1) + columnSpan] = 'auto';
+				}
+				if (rows.length < row) {
+					rows[row] = 'auto';
+				}
+				if (rows.length < (row - 1) + rowSpan) {
+					rows[(row - 1) + rowSpan] = 'auto';
+				}
+			});
+
 			var tracks = [];
 			$.each(rows, function (x, rv) {
 				tracks[x] = [];
 				$.each(cols, function (y, cv) {
 					tracks[x][y] = {
-						x: cv,
-						y: rv
+						x: (typeof cv !== "undefined") ? cv : 'auto',
+						y: (typeof rv !== "undefined") ? rv : 'auto'
 					}
 				});
 			})
 			return tracks;
 		}
+
+		log(grids);
 
 		// apply css
 		$.each(grids, function (i, block) {
