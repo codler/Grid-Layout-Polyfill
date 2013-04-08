@@ -17,7 +17,12 @@ Simply add the script after jQuery
 
 ### Options
 
-`$(grid).gridLayout('refresh')` will recalculate existing initiated grid. Useful when for example you have set a new height with JavaScript on the grid.
+* `$(grid).gridLayout('refresh')` will recalculate existing initiated grid. Useful when for example you have set a new height with JavaScript on the grid.
+
+	$(grid).gridLayout({
+		// Resize event, triggers when window resize with 100ms delay to increase performance
+		'resize' : function() {} 
+	})
 
 ## Browser support
 
@@ -30,8 +35,8 @@ Simply add the script after jQuery
 ### What is covered?
 
 	display: -ms-grid;
-	-ms-grid-columns: 100px 1fr 100px; /* Only pixel and fraction units */
-	-ms-grid-rows: 100px 1fr 100px; /* Only pixel and fraction units */
+	-ms-grid-columns: 100px 1fr auto; /* Only pixel, fraction and auto units */
+	-ms-grid-rows: 100px 1fr auto; /* Only pixel, fraction and auto units */
 
 	-ms-grid-column: 1;
 	-ms-grid-row: 1;
