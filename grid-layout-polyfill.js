@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.10.0 - 2013-04-08 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.11.0 - 2013-04-08 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
 /* --- Other polyfills --- */
@@ -464,7 +464,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 		});
 
 		// [data-ms-grid] are for IE9
-		$('[style]:has-style("display:-ms-grid"), [data-ms-grid]').each(function () {
+		$('[style]:has-style("display:-ms-grid"), [style]:has-style("display:grid"), [data-ms-grid]').each(function () {
 			var attr = cssTextAttributeToObj($(this).attr('style'));
 			// For ie9
 			if (!attr.display) {
@@ -490,7 +490,8 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 			var grids = [];
 			$.each(objCss, function (i, block) {
 				if (block.attributes) {
-					if (block.attributes.display == '-ms-grid') {
+					if (block.attributes.display == '-ms-grid' ||
+						block.attributes.display == 'grid') {
 						grids.push({
 							selector: block.selector,
 							attributes: block.attributes,
@@ -559,12 +560,16 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 				tracks[x] = [];
 				$.each(cols, function (y, cv) {
 					tracks[x][y] = {
-						x: (typeof cv !== "undefined") ? cv : 'auto',
-						y: (typeof rv !== "undefined") ? rv : 'auto'
+						x: (typeof cv !== "undefined" && validateValue(cv)) ? cv : 'auto',
+						y: (typeof rv !== "undefined" && validateValue(rv)) ? rv : 'auto'
 					}
 				});
 			})
 			return tracks;
+		}
+
+		function validateValue(value) {
+			return /^(\d+(\.\d+)?(fr|px)|auto)$/.test(value);
 		}
 
 		log(grids);
