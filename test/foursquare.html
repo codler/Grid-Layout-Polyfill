@@ -42,7 +42,7 @@ jQuery(function ($) {
 		// Same as above, the above code are more optimized and has 100ms delay.
 		$(window).on('resize', function() {
 			$('#grid').height( ($('#grid').parent().height()) );
-			$('#grid').gridLayout('refresh');
+			//$('#grid').gridLayout('refresh');
 		}).trigger('resize');
 	}
 
