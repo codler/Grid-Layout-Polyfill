@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.11.0 - 2013-04-08 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.12.0 - 2013-04-10 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
 /* --- Other polyfills --- */
@@ -155,8 +155,20 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 
 /* --- Grid Layout polyfill --- */
 (function($) {
+	// Prevent to read twice
+	if ($.gridLayout) {
+		return;
+	}
+
 	// Detect grid layout support
 	$.support.gridLayout = document.createElement('div').style['msGridRowAlign'] === '';
+	/*
+	// TODO: replace with this.
+	var div = document.createElement('div');
+	// TODO: webkit
+	div.style.display = '-ms-grid';
+	$.support.gridLayout = div.style.display === '-ms-grid';
+	*/
 
 	// TODO: Low priority: find a better one to detect IE8 and lower
 	// IE8 or lower
@@ -164,6 +176,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 
 	if ($.support.gridLayout || ltIE8) {
 		$.fn.gridLayout = function() { return this; };
+		$.gridLayout = $.noop();
 		return;
 	}
 
@@ -171,6 +184,12 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 		console.log(o);
 		console.trace();
 	}
+
+	var grids = []; // List of all grids
+
+	$.gridLayout = function() {
+		return grids;
+	};
 
 	//console.clear();
 	
@@ -272,7 +291,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 			$(block.selector).css({
 				'position' : 'relative',
 				'box-sizing': 'border-box',
-				width: (block.attributes.display == '-ms-grid') ? '100%' : gridSize.x,
+				width: (block.attributes.display == '-ms-grid' || block.attributes.display == 'grid') ? 'auto' : gridSize.x,
 				height: gridSize.y
 			});
 
@@ -439,7 +458,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 		var objCss = cssTextToObj(styles);
 
 		/* { selector, attributes, tracks : ([index-x/row][index-y/col] : { x, y }) } */
-		var grids = findGrids(objCss);
+		grids = findGrids(objCss);
 		
 
 		$.expr[":"]['has-style'] = $.expr.createPseudo(function(arg) {
@@ -574,6 +593,11 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 
 		log(grids);
 
+		var sortByGridDepth = function(a, b) {
+	        return $(a.selector).parents().length - $(b.selector).parents().length;
+	    };
+		grids.sort(sortByGridDepth);
+
 		// apply css
 		$.each(grids, function (i, block) {
 			var gridSize = calculateTrackSpanLength(block.tracks, 1, 1, block.tracks.length, block.tracks[0].length);
@@ -615,7 +639,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 			$(block.selector).css({
 				'position' : 'relative',
 				'box-sizing': 'border-box',
-				width: (block.attributes.display == '-ms-grid') ? '100%' : gridSize.x,
+				width: (block.attributes.display == '-ms-grid' || block.attributes.display == 'grid') ? 'auto' : gridSize.x,
 				height: gridSize.y
 			});
 

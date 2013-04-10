@@ -23,13 +23,46 @@ html, body {
 	box-sizing: border-box;
 }
 </style>
+<script>
+jQuery(function ($) {
+    // Set 100% Height
+    if ($.support.gridLayout) {
+        var resizeTimer;
+        $(window).on('resize', function(ev, param) {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                $('[data-ms-grid]').each(function() {
+                    $(this).height($(this).parent().height() - ($(this).outerHeight(true) - $(this).height()));
+                });
+            }, 100);
+        }).trigger('resize');
+    } else {
+        // Get all grids
+        var grids = $.gridLayout();
+        var sortByGridDepth = function(a, b) {
+            return $(a.selector).parents().length - $(b.selector).parents().length;
+        };
+
+        grids.sort(sortByGridDepth);
+
+        $.each(grids, function(i, block) {
+            $(block.selector).gridLayout({
+                'resize': function () {
+                    $(this).height($(this).parent().height() - ($(this).outerHeight(true) - $(this).height()));
+                    $(this).gridLayout('refresh');
+                }
+            }).trigger('gridlayoutresize');
+        });
+    }
+});
+</script>
 </head>
 <body>
 	
-<div data-ms-grid="true" id="MashupGrid1" style="display: -ms-grid; height:100%; width:100%;-ms-grid-rows: 1fr 25.0px; -ms-grid-columns: 1fr; ">
+<div data-ms-grid="true" id="MashupGrid1" style="display: -ms-grid; height:100%; width:auto;-ms-grid-rows: 1fr 25.0px; -ms-grid-columns: 1fr; ">
     <div class="gridBox" style="background-color: MOCCASIN;">
         <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-            <div data-ms-grid="true" id="MashupGrid2" style="display: -ms-grid; height:100%; width:100%;-ms-grid-columns: 1fr; -ms-grid-rows: Auto 1fr Auto Auto; margin-left:15px;margin-top:10px;margin-right:15px;margin-bottom:15px; background-color: MEDIUMSPRINGGREEN;">
+            <div data-ms-grid="true" id="MashupGrid2" style="display: -ms-grid; height:100%; width:auto;-ms-grid-columns: 1fr; -ms-grid-rows: Auto 1fr Auto Auto; margin-left:15px;margin-top:10px;margin-right:15px;margin-bottom:15px; background-color: MEDIUMSPRINGGREEN;">
                 <div class="gridBox" style="background-color: MEDIUMTURQUOISE;">
                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
                         <div id="MashupStackPanel3" style="">
@@ -51,7 +84,7 @@ html, body {
                 <div class="gridBox" style="-ms-grid-row:3; background-color: MEDIUMSLATEBLUE;">
                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
                         <div class="mashupDataDetailPanel" id="CustomerDetail" style="margin-left:0px;margin-top:15px;margin-right:0px;margin-bottom:0px;">
-                            <div data-ms-grid="true" id="MashupGrid5" style="display: -ms-grid; height:100%; width:100%;-ms-grid-columns: Auto 10.0px 200.0px 15.0px Auto 10.0px 200.0px 15.0px 1fr; -ms-grid-rows: Auto 5.0px Auto 5.0px Auto 5.0px Auto Auto; background-color: FORESTGREEN;">
+                            <div data-ms-grid="true" id="MashupGrid5" style="display: -ms-grid; height:100%; width:auto;-ms-grid-columns: Auto 10.0px 200.0px 15.0px Auto 10.0px 200.0px 15.0px 1fr; -ms-grid-rows: Auto 5.0px Auto 5.0px Auto 5.0px Auto Auto; background-color: FORESTGREEN;">
                                 <div class="gridBox" style="-ms-grid-column:1; -ms-grid-row:1; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
                                         <label class="noColon mashupLabel" id="MashupLabel6" style="margin:0px;">Customer number:</label>
@@ -140,50 +173,15 @@ html, body {
                                     </div>
                                 </div>
                             </div>
-                            <script>
-                                jQuery(function ($) {
-                                    if ($.support.gridLayout) return;
-                                    $('#MashupGrid5').gridLayout({
-                                        'resize': function () {
-                                            $(this).height($(this).parent().height());
-                                            $(this).gridLayout('refresh');
-                                        }
-                                    }).trigger('gridlayoutresize');
-                                });
-                            </script>
                         </div>
                     </div>
                 </div>
             </div>
-            <script>
-                jQuery(function ($) {
-                    if ($.support.gridLayout) return;
-                    $('#MashupGrid2').gridLayout({
-                        'resize': function () {
-                            $(this).height($(this).parent().height());
-                            $(this).gridLayout('refresh');
-                        }
-                    }).trigger('gridlayoutresize');
-                });
-            </script>
         </div>
     </div>
     <div class="gridBox" style="-ms-grid-column:1; -ms-grid-row:2; background-color:red;">
         <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;"></div>
     </div>
 </div>
-<script>
-    jQuery(function ($) {
-        if ($.support.gridLayout) return;
-        $('#MashupGrid1').gridLayout({
-            'resize': function () {
-                $(this).height($(this).parent().height());
-                $(this).gridLayout('refresh');
-            }
-        }).trigger('gridlayoutresize');
-    });
-</script>
-
-
 </body>
 </html>
