@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.12.0 - 2013-04-10 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.13.0 - 2013-04-10 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
 /* --- Other polyfills --- */
@@ -186,6 +186,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 	}
 
 	var grids = []; // List of all grids
+	var cacheFindDefinedSelectors = []; // Cache defined selectors on an element
 
 	$.gridLayout = function() {
 		return grids;
@@ -1096,7 +1097,14 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 			return length;
 		}
 
+
+		
+
 		function findDefinedSelectors(element) {
+			var i;
+			if ((i = $.inArray(element, cacheFindDefinedSelectors)) !== -1) {
+				return cacheFindDefinedSelectors[i];
+			}
 			var selectors = [];
 			for (var x = 0; x < document.styleSheets.length; x++) {
 				var rules = document.styleSheets[x].cssRules;
@@ -1109,6 +1117,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 					} catch (e) {}
 				}
 			}
+			cacheFindDefinedSelectors.push(selectors);
 			return selectors;
 		}
 	});
