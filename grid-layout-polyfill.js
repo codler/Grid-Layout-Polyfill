@@ -1,6 +1,6 @@
-/*! Grid Layout Polyfill - v1.13.0 - 2013-04-10 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.14.0 - 2013-04-16 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
-* Copyright (c) 2013 Han Lin Yap http://yap.nu; http://creativecommons.org/licenses/by-sa/3.0/ */
+* Copyright (c) 2013 Han Lin Yap http://yap.nu; MIT license */
 /* --- Other polyfills --- */
 // Avoid `console` errors in browsers that lack a console.
 (function() {
@@ -187,9 +187,17 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 
 	var grids = []; // List of all grids
 	var cacheFindDefinedSelectors = []; // Cache defined selectors on an element
+	var cacheFindDefinedSelectorsKey = [];
 
-	$.gridLayout = function() {
-		return grids;
+	$.gridLayout = function(method) {
+		// Internal usage
+		if (method == 'clearCache') {
+			cacheFindDefinedSelectorsKey = [];
+			cacheFindDefinedSelectors = [];
+		} else {
+			// Return all grids;
+			return grids;
+		}
 	};
 
 	//console.clear();
@@ -801,6 +809,10 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 			var self = this;
 			clearTimeout(resizeTimer);
 			resizeTimer = setTimeout(function() {
+
+				// TODO: should only be needed to clear cache when element or stylesheet have changed.
+				//$.gridLayout('clearCache');
+
 				var verticalScrollBarVisible = false;
 				// Check if vertical scrollbar exist
 				if (hasVerticalScrollBar()) { 
@@ -1102,13 +1114,15 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 
 		function findDefinedSelectors(element) {
 			var i;
-			if ((i = $.inArray(element, cacheFindDefinedSelectors)) !== -1) {
-				return cacheFindDefinedSelectors[i];
+			if ((i = $.inArray(element.get(0), cacheFindDefinedSelectorsKey)) !== -1) {
+				// slice(0) is for "pass-by-value"
+				return cacheFindDefinedSelectors[i].slice(0);
 			}
 			var selectors = [];
-			for (var x = 0; x < document.styleSheets.length; x++) {
-				var rules = document.styleSheets[x].cssRules;
-				for (var i = 0; i < rules.length; i++) {
+			var styleSheets = document.styleSheets;
+			for (var x = 0, ssl = styleSheets.length; x < ssl; x++) {
+				var rules = styleSheets[x].cssRules;
+				for (var i = 0, rl = rules.length; i < rl; i++) {
 
 					try {
 						if (element.is(rules[i].selectorText)) {
@@ -1117,8 +1131,9 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 					} catch (e) {}
 				}
 			}
+			cacheFindDefinedSelectorsKey.push(element.get(0));
 			cacheFindDefinedSelectors.push(selectors);
-			return selectors;
+			return selectors.slice(0);
 		}
 	});
 })(jQuery);
