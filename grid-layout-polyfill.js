@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.14.0 - 2013-04-16 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.15.0 - 2013-04-22 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; MIT license */
 /* --- Other polyfills --- */
@@ -109,13 +109,15 @@ function cssTextAttributeToObj(text) {
 
 	attribute.pop();
 	var objAttribute = {};
-	$.map(attribute, function (n, i) {
+	for(var i = 0, l = attribute.length; i < l; i++) {
 		if (i % 2 == 1) {
-			objAttribute[$.trim(attribute[i - 1])] = $.trim(n.substr(1).replace(';', '').replace(/url\(([^)]+)\)/g, function (url) {
+			var property = $.trim(attribute[i - 1]);
+			var value = attribute[i];
+			objAttribute[property] = $.trim(value.substr(1).replace(';', '').replace(/url\(([^)]+)\)/g, function (url) {
 				return url.replace(/\[cssFinalize\]/g, ';');
 			}));
 		}
-	});
+	}
 	return objAttribute;
 }
 
@@ -690,7 +692,7 @@ function cssObjToTextAttribute(obj, prettyfy, indentLevel) {
 				var row = attributes['-ms-grid-row'] || 1;
 				var column = attributes['-ms-grid-column'] || 1;
 				if (block.tracks[row-1][column-1].item) {
-					block.tracks[row-1][column-1].item.add(gridItem);
+					block.tracks[row-1][column-1].item = block.tracks[row-1][column-1].item.add(gridItem);
 				} else {
 					block.tracks[row-1][column-1].item = gridItem;
 				}
