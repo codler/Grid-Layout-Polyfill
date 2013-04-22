@@ -26,38 +26,38 @@ html, body {
 </head>
 <body>
 	
-<div data-ms-grid="true" id="MashupGrid1" style="display: -ms-grid; height:96%; width:100%;-ms-grid-columns: 1fr 1fr; -ms-grid-rows: 40.0px 50.0px 1fr 1fr; ">
+<div data-ms-grid="true" id="Grid1" style="display: -ms-grid; height:96%; width:100%;-ms-grid-columns: 1fr 1fr; -ms-grid-rows: 40.0px 50.0px 1fr 1fr; ">
     <div class="gridBox" style="background-color: black;">
         <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;"></div>
     </div>
     <div class="gridBox" style="-ms-grid-row:1; background-color: lightgreen;">
         <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-<span class=" noColon mashupTextBlock" id="MashupTextBlock3" style="font-size:24px;font-weight:Bold;margin-left:12px;margin-top:8px;margin-right:0px;margin-bottom:0px;">Search</span>
+<span style="font-size:24px;font-weight:Bold;margin-left:12px;margin-top:8px;margin-right:0px;margin-bottom:0px;">Search</span>
 
         </div>
     </div>
     <div class="gridBox" style="-ms-grid-row:2; background-color: green;">
         <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-            <div id="MashupStackPanel4" style="margin-left:8px;margin-top:8px;margin-right:0px;margin-bottom:0px;">
-<span class=" noColon mashupTextBlock" id="MashupTextBlock5" style="margin-left::5px;margin-right::5px;">Artist</span>
-                <input class=" mashupTextBox" id="textBoxArtist" maxlength="256" style="width:200;margin-left:8px;margin-top:0px;margin-right:0px;margin-bottom:0px;">
-                <button class=" default" id="MashupButton6" style="width:100;margin-left:8px;margin-top:0px;margin-right:0px;margin-bottom:0px;" type="button">Search</button>
+            <div style="margin-left:8px;margin-top:8px;margin-right:0px;margin-bottom:0px;">
+<span style="margin-left::5px;margin-right::5px;">Artist</span>
+                <input style="width:200;margin-left:8px;margin-top:0px;margin-right:0px;margin-bottom:0px;">
+                <button style="width:100;margin-left:8px;margin-top:0px;margin-right:0px;margin-bottom:0px;" type="button">Search</button>
             </div>
         </div>
     </div>
     <div class="gridBox" style="-ms-grid-column-span:2; -ms-grid-column:1; -ms-grid-row:3; background-color: blue;">
         <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-            <div class="mashupDataGridList" id="PanelArtists" style="margin:8px;">3:1 colspan 2</div>
+            <div style="margin:8px;">3:1 colspan 2</div>
         </div>
     </div>
     <div class="gridBox" style="-ms-grid-column:1; -ms-grid-row:4;background-color: yellow; ">
         <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-            <div class="mashupDataGridList" id="PanelAlbums" style="margin:8px;">4:1</div>
+            <div style="margin:8px;">4:1</div>
         </div>
     </div>
     <div class="gridBox" style="-ms-grid-column:2; -ms-grid-row:4; background-color: red;">
         <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-            <div class="mashupDataGridList" id="PanelTracks" style="margin:8px;">4:2</div>
+            <div style="margin:8px;">4:2</div>
         </div>
     </div>
 </div>
@@ -65,8 +65,8 @@ html, body {
     jQuery(function ($) {
         if ($.support.gridLayout) return;
         $(window).on('resize', function () {
-            $('#MashupGrid1').height(($('#MashupGrid1').parent().height()));
-            $('#MashupGrid1').gridLayout('refresh');
+            $('#Grid1').height(($('#Grid1').parent().height()));
+            $('#Grid1').gridLayout('refresh');
         }).trigger('resize');
     });
 </script>

@@ -59,21 +59,21 @@ jQuery(function ($) {
 </head>
 <body>
 	
-<div data-ms-grid="true" id="MashupGrid1" style="display: -ms-grid; height:100%; width:auto;-ms-grid-rows: 1fr 25.0px; -ms-grid-columns: 1fr; ">
+<div data-ms-grid="true" id="Grid1" style="display: -ms-grid; height:100%; width:auto;-ms-grid-rows: 1fr 25.0px; -ms-grid-columns: 1fr; ">
     <div class="gridBox" style="background-color: MOCCASIN;">
         <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-            <div data-ms-grid="true" id="MashupGrid2" style="display: -ms-grid; height:100%; width:auto;-ms-grid-columns: 1fr; -ms-grid-rows: Auto 1fr Auto Auto; margin-left:15px;margin-top:10px;margin-right:15px;margin-bottom:15px; background-color: MEDIUMSPRINGGREEN;">
+            <div data-ms-grid="true" id="Grid2" style="display: -ms-grid; height:100%; width:auto;-ms-grid-columns: 1fr; -ms-grid-rows: Auto 1fr Auto Auto; margin-left:15px;margin-top:10px;margin-right:15px;margin-bottom:15px; background-color: MEDIUMSPRINGGREEN;">
                 <div class="gridBox" style="background-color: MEDIUMTURQUOISE;">
                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                        <div id="MashupStackPanel3" style="">
-                            <input class="mashupTextBox" id="SearchCustomerTextBox" style="width:200;margin:0px;">
-                            <button id="MashupButton4" style="width:100;margin-left:10px;margin-top:0px;margin-right:0px;margin-bottom:0px;" type="button">{}</button>
+                        <div>
+                            <input style="width:200;margin:0px;">
+                            <button style="width:100;margin-left:10px;margin-top:0px;margin-right:0px;margin-bottom:0px;" type="button">{}</button>
                         </div>
                     </div>
                 </div>
                 <div class="gridBox" style="-ms-grid-row:2; background-color: MEDIUMVIOLETRED;">
                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                        <div class="mashupDataGridList" id="CustomerList" style="margin-left:0px;margin-top:15px;margin-right:0px;margin-bottom:0px;">
+                        <div style="margin-left:0px;margin-top:15px;margin-right:0px;margin-bottom:0px;">
                             Content1<br/>
                             Content2<br/>
                             Content3<br/>
@@ -83,92 +83,92 @@ jQuery(function ($) {
                 </div>
                 <div class="gridBox" style="-ms-grid-row:3; background-color: MEDIUMSLATEBLUE;">
                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                        <div class="mashupDataDetailPanel" id="CustomerDetail" style="margin-left:0px;margin-top:15px;margin-right:0px;margin-bottom:0px;">
-                            <div data-ms-grid="true" id="MashupGrid5" style="display: -ms-grid; height:100%; width:auto;-ms-grid-columns: Auto 10.0px 200.0px 15.0px Auto 10.0px 200.0px 15.0px 1fr; -ms-grid-rows: Auto 5.0px Auto 5.0px Auto 5.0px Auto Auto; background-color: FORESTGREEN;">
+                        <div style="margin-left:0px;margin-top:15px;margin-right:0px;margin-bottom:0px;">
+                            <div data-ms-grid="true" id="Grid5" style="display: -ms-grid; height:100%; width:auto;-ms-grid-columns: Auto 10.0px 200.0px 15.0px Auto 10.0px 200.0px 15.0px 1fr; -ms-grid-rows: Auto 5.0px Auto 5.0px Auto 5.0px Auto Auto; background-color: FORESTGREEN;">
                                 <div class="gridBox" style="-ms-grid-column:1; -ms-grid-row:1; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <label class="noColon mashupLabel" id="MashupLabel6" style="margin:0px;">Customer number:</label>
+                                        <label style="margin:0px;">Customer number:</label>
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:3; -ms-grid-row:1; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <input class="mashupTextBox" data-bind="value: field0" id="MashupTextBox7" maxlength="10" style="margin-left::5px;margin-right::5px;">
+                                        <input style="margin-left::5px;margin-right::5px;">
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:1; -ms-grid-row:3; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <label class="noColon mashupLabel" id="MashupLabel8" style="margin:0px;">Customer name:</label>
+                                        <label style="margin:0px;">Customer name:</label>
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:3; -ms-grid-row:3; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <input class="mashupTextBox" data-bind="value: field1" id="MashupTextBox9" maxlength="36" style="margin-left::5px;margin-right::5px;">
+                                        <input style="margin-left::5px;margin-right::5px;">
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:1; -ms-grid-row:5; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <label class="noColon mashupLabel" id="MashupLabel10" style="margin:0px;">Customer address 1:</label>
+                                        <label style="margin:0px;">Customer address 1:</label>
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:3; -ms-grid-row:5; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <input class="mashupTextBox" data-bind="value: field2" id="MashupTextBox11" maxlength="36" style="margin-left::5px;margin-right::5px;">
+                                        <input style="margin-left::5px;margin-right::5px;">
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:1; -ms-grid-row:7; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <label class="noColon mashupLabel" id="MashupLabel12" style="margin:0px;">Customer address 2:</label>
+                                        <label style="margin:0px;">Customer address 2:</label>
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:3; -ms-grid-row:7; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <input class="mashupTextBox" data-bind="value: field3" id="MashupTextBox13" maxlength="36" style="margin-left::5px;margin-right::5px;">
+                                        <input style="margin-left::5px;margin-right::5px;">
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:5; -ms-grid-row:1; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <label class="noColon mashupLabel" id="MashupLabel14" style="margin:0px;">Customer address 3:</label>
+                                        <label style="margin:0px;">Customer address 3:</label>
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:7; -ms-grid-row:1; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <input class="mashupTextBox" data-bind="value: field4" id="MashupTextBox15" maxlength="36" style="margin-left::5px;margin-right::5px;">
+                                        <input style="margin-left::5px;margin-right::5px;">
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:5; -ms-grid-row:3; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <label class="noColon mashupLabel" id="MashupLabel16" style="margin:0px;">Customer address 4:</label>
+                                        <label style="margin:0px;">Customer address 4:</label>
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:7; -ms-grid-row:3; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <input class="mashupTextBox" data-bind="value: field5" id="MashupTextBox17" maxlength="36" style="margin-left::5px;margin-right::5px;">
+                                        <input style="margin-left::5px;margin-right::5px;">
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:5; -ms-grid-row:5; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <label class="noColon mashupLabel" id="MashupLabel18" style="margin:0px;">Your reference 1:</label>
+                                        <label style="margin:0px;">Your reference 1:</label>
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:7; -ms-grid-row:5; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <input class="mashupTextBox" data-bind="value: field6" id="MashupTextBox19" maxlength="30" style="margin-left::5px;margin-right::5px;">
+                                        <input style="margin-left::5px;margin-right::5px;">
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:5; -ms-grid-row:7; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <label class="noColon mashupLabel" id="MashupLabel20" style="margin:0px;">Country code:</label>
+                                        <label style="margin:0px;">Country code:</label>
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column:7; -ms-grid-row:7; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <input class="mashupTextBox" data-bind="value: field7" id="MashupTextBox21" maxlength="3" style="margin-left::5px;margin-right::5px;">
+                                        <input style="margin-left::5px;margin-right::5px;">
                                     </div>
                                 </div>
                                 <div class="gridBox" style="-ms-grid-column-span:7; -ms-grid-row:8; ">
                                     <div class="cell" style="height: 100%; overflow: hidden; vertical-align: top; position:relative;">
-                                        <div id="MashupStackPanel22" style="margin-left:0px;margin-top:15px;margin-right:0px;margin-bottom:0px;">
-                                            <button id="MashupButton23" style="width:150;" type="button">{}</button>
+                                        <div style="margin-left:0px;margin-top:15px;margin-right:0px;margin-bottom:0px;">
+                                            <button style="width:150;" type="button">{}</button>
                                         </div>
                                     </div>
                                 </div>
