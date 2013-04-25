@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.16.0 - 2013-04-24 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.17.0 - 2013-04-25 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; MIT license */
 /* --- Other polyfills --- */
@@ -371,7 +371,7 @@
 					$(block.selector).each(function() {
 						var gridItem = $(this);
 
-						var selectors = CSSAnalyzer.findDefinedSelectors(gridItem);
+						var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
 						
 						// TODO: merge all attr to find other same attributes
 
@@ -420,7 +420,7 @@
 			}).each(function (i, e) {
 				var gridItem = $(this);
 
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem);
+				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
 				
 				// TODO: merge all attr to find other same attributes
 
@@ -473,7 +473,7 @@
 			$(block.selector).children().each(function (i, e) {
 				var gridItem = $(this);
 
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem);
+				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
 				
 				// TODO: merge all attr to find other same attributes
 
@@ -618,7 +618,7 @@
 			$(selector).children().each(function (i, e) {
 				var gridItem = $(this);
 
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem);
+				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
 				
 				// TODO: merge all attr to find other same attributes
 
@@ -686,7 +686,7 @@
 				if (!$(this).data('old-style')) {
 					var gridItem = $(this);
 
-					var selectors = CSSAnalyzer.findDefinedSelectors(gridItem);
+					var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
 					
 					// TODO: merge all attr to find other same attributes
 
@@ -738,7 +738,7 @@
 			}).each(function (i, e) {
 				var gridItem = $(this);
 
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem);
+				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
 				
 				// TODO: merge all attr to find other same attributes
 
@@ -763,7 +763,7 @@
 			$(block.selector).children().each(function (i, e) {
 				var gridItem = $(this);
 
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem);
+				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
 				
 				// TODO: merge all attr to find other same attributes
 
@@ -816,7 +816,7 @@
 			$(block.selector).children().each(function (i, e) {
 				var gridItem = $(this);
 
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem);
+				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
 				
 				// TODO: merge all attr to find other same attributes
 
@@ -1124,9 +1124,10 @@
 		}
 
 		function getAttributesBySelector(objCss, selector) {
+			if (!selector) return {};
 			var found;
 			$.each(objCss, function (i, block) {
-				if (block.selector == selector) {
+				if (block.selector == selector.selector) {
 					found = block.attributes;
 					return false;
 				}
