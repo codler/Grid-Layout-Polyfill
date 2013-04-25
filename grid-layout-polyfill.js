@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.17.0 - 2013-04-25 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.18.0 - 2013-04-25 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; MIT license */
 /* --- Other polyfills --- */
@@ -282,6 +282,8 @@
 	// TODO: Low priority: find a better one to detect IE8 and lower
 	// IE8 or lower
 	var ltIE8 = 'function' !== typeof Array.prototype.reduce;
+	var cacheGetDefinedAttributesByElementKey = [];
+	var cacheGetDefinedAttributesByElement = [];
 
 	if ($.support.gridLayout || ltIE8) {
 		$.fn.gridLayout = function() { return this; };
@@ -291,7 +293,6 @@
 
 	function log(o) {
 		console.log(o);
-		console.trace();
 	}
 
 	var grids = []; // List of all grids
@@ -302,6 +303,9 @@
 			// TODO: remove and use CSSAnalyzer instead
 			cacheFindDefinedSelectorsKey = [];
 			cacheFindDefinedSelectors = [];
+
+			cacheGetDefinedAttributesByElementKey = [];
+			cacheGetDefinedAttributesByElement = [];
 		} else {
 			// Return all grids;
 			return grids;
@@ -333,6 +337,35 @@
 						$(block.selector).each(function() {
 							if (self == this) {
 								// gridLayout(element, block);
+								resetTracks(block.tracks);
+
+								var sameHeight = true;
+								if ($(block.selector).data('recent-height')) {
+									var recentHeight = $(block.selector).data('recent-height');
+
+									if (parseFloat($(block.selector).outerHeight()) != recentHeight) {
+										sameHeight = false;
+
+										// Save old style
+										$(block.selector).each(function() {
+											var gridItem = $(this);
+
+											var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
+
+											var style = CSSAnalyzer.textAttrToObj($(this).attr('style'));
+											/*
+											if (attributes.width && !style.width) {
+												style.width = attributes.width;
+											}*/
+											if (attributes.height && !style.height) {
+												style.height = attributes.height;
+											}
+
+											$(this).data('old-style', CSSAnalyzer.objToTextAttr(style));
+
+										});
+									}
+								}
 
 								gl_refresh(self, block);
 
@@ -358,47 +391,7 @@
 		};
 
 		function gl_refresh(ele, block) {
-			resetTracks(block.tracks);
 
-			var sameHeight = true;
-			if ($(block.selector).data('recent-height')) {
-				var recentHeight = $(block.selector).data('recent-height');
-
-				if (parseFloat($(block.selector).outerHeight()) != recentHeight) {
-					sameHeight = false;
-
-					// Save old style
-					$(block.selector).each(function() {
-						var gridItem = $(this);
-
-						var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
-						
-						// TODO: merge all attr to find other same attributes
-
-						var attributes = getAttributesBySelector(objCss, selectors.pop());
-
-						var a = CSSAnalyzer.textAttrToObj(gridItem.data('old-style') || gridItem.attr('style'));
-						if (/*a['width'] || */
-							a['height']) {
-							attributes = $.extend(true, attributes, a);
-						}
-
-						var style = CSSAnalyzer.textAttrToObj($(this).attr('style'));
-						if (attributes) {
-							/*
-							if (attributes.width && !style.width) {
-								style.width = attributes.width;
-							}*/
-							if (attributes.height && !style.height) {
-								style.height = attributes.height;
-							}
-						}
-
-						$(this).data('old-style', CSSAnalyzer.objToTextAttr(style));
-
-					});
-				}
-			}
 
 			var gridSize = calculateTrackSpanLength(block.tracks, 1, 1, block.tracks.length, block.tracks[0].length);
 			
@@ -420,21 +413,7 @@
 			}).each(function (i, e) {
 				var gridItem = $(this);
 
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
-				
-				// TODO: merge all attr to find other same attributes
-
-				var attributes = getAttributesBySelector(objCss, selectors.pop());
-
-				var a = CSSAnalyzer.textAttrToObj(gridItem.data('old-style') || gridItem.attr('style'));
-				if (a['-ms-grid-row'] || 
-					a['-ms-grid-column'] || 
-					a['-ms-grid-column-span'] ||
-					a['-ms-grid-row-span']) {
-					attributes = $.extend(true, attributes, a);
-				}
-
-				if (!attributes) return true;
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
 
 				var row = attributes['-ms-grid-row'] || 1;
 				var column = attributes['-ms-grid-column'] || 1;
@@ -473,21 +452,7 @@
 			$(block.selector).children().each(function (i, e) {
 				var gridItem = $(this);
 
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
-				
-				// TODO: merge all attr to find other same attributes
-
-				var attributes = getAttributesBySelector(objCss, selectors.pop());
-				
-				var a = CSSAnalyzer.textAttrToObj(gridItem.data('old-style') || gridItem.attr('style'));
-				if (a['-ms-grid-row'] || 
-					a['-ms-grid-column'] || 
-					a['-ms-grid-column-span'] ||
-					a['-ms-grid-row-span']) {
-					attributes = $.extend(true, attributes, a);
-				}
-
-				if (!attributes) return true;
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
 
 				var row = attributes['-ms-grid-row'] || 1;
 				var column = attributes['-ms-grid-column'] || 1;
@@ -618,21 +583,7 @@
 			$(selector).children().each(function (i, e) {
 				var gridItem = $(this);
 
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
-				
-				// TODO: merge all attr to find other same attributes
-
-				var attributes = getAttributesBySelector(objCss, selectors.pop());
-
-				var a = CSSAnalyzer.textAttrToObj(gridItem.attr('style'));
-				if (a['-ms-grid-row'] || 
-					a['-ms-grid-column'] || 
-					a['-ms-grid-column-span'] ||
-					a['-ms-grid-row-span']) {
-					attributes = $.extend(true, attributes, a);
-				}
-
-				if (!attributes) return true;
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style')));
 
 				var row = attributes['-ms-grid-row'] || 1;
 				var column = attributes['-ms-grid-column'] || 1;
@@ -663,6 +614,21 @@
 					}
 				});
 			})
+
+			// Connect element to track
+			$(selector).children().each(function (i, e) {
+				var gridItem = $(this);
+
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style')));
+
+				var row = attributes['-ms-grid-row'] || 1;
+				var column = attributes['-ms-grid-column'] || 1;
+				if (tracks[row-1][column-1].item) {
+					tracks[row-1][column-1].item = tracks[row-1][column-1].item.add(gridItem);
+				} else {
+					tracks[row-1][column-1].item = gridItem;
+				}
+			});
 			return tracks;
 		}
 
@@ -679,47 +645,26 @@
 
 		// apply css
 		$.each(grids, function (i, block) {
-			var gridSize = calculateTrackSpanLength(block.tracks, 1, 1, block.tracks.length, block.tracks[0].length);
 			
 			// Save old style
 			$(block.selector).each(function() {
 				if (!$(this).data('old-style')) {
 					var gridItem = $(this);
 
-					var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
-					
-					// TODO: merge all attr to find other same attributes
-
-					var attributes = getAttributesBySelector(objCss, selectors.pop());
-
-					var a = CSSAnalyzer.textAttrToObj(gridItem.data('old-style') || gridItem.attr('style'));
-					if (a['width'] || 
-						a['height']) {
-						attributes = $.extend(true, attributes, a);
-					}
+					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
 
 					var style = CSSAnalyzer.textAttrToObj($(this).attr('style'));
-					if (attributes) {
-						if (attributes.width && !style.width) {
-							style.width = attributes.width;
-						}
-						if (attributes.height && !style.height) {
-							style.height = attributes.height;
-						}
+					
+					if (attributes.width && !style.width) {
+						style.width = attributes.width;
+					}
+					if (attributes.height && !style.height) {
+						style.height = attributes.height;
 					}
 
 					$(this).data('old-style', CSSAnalyzer.objToTextAttr(style));
 				}
 			});
-			
-			$(block.selector).css({
-				'position' : 'relative',
-				'box-sizing': 'border-box',
-				width: (block.attributes.display == '-ms-grid' || block.attributes.display == 'grid') ? 'auto' : gridSize.x,
-				height: gridSize.y
-			});
-
-			
 
 			// Save old style
 			$(block.selector).children().each(function() {
@@ -728,125 +673,7 @@
 				}
 			});
 
-			$(block.selector).children().css({
-				'box-sizing': 'border-box',
-					'position': 'absolute',
-				top: 0,
-				left: 0,
-				width: block.tracks[0][0].x,
-				height: block.tracks[0][0].y
-			}).each(function (i, e) {
-				var gridItem = $(this);
-
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
-				
-				// TODO: merge all attr to find other same attributes
-
-				var attributes = getAttributesBySelector(objCss, selectors.pop());
-
-				var a = CSSAnalyzer.textAttrToObj(gridItem.data('old-style') || gridItem.attr('style'));
-				if (a['-ms-grid-row'] || a['-ms-grid-column']) {
-					attributes = $.extend(true, attributes, a);
-				}
-
-				if (!attributes) return true;
-
-				var row = attributes['-ms-grid-row'] || 1;
-				var column = attributes['-ms-grid-column'] || 1;
-				if (block.tracks[row-1][column-1].item) {
-					block.tracks[row-1][column-1].item = block.tracks[row-1][column-1].item.add(gridItem);
-				} else {
-					block.tracks[row-1][column-1].item = gridItem;
-				}
-			});
-
-			$(block.selector).children().each(function (i, e) {
-				var gridItem = $(this);
-
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
-				
-				// TODO: merge all attr to find other same attributes
-
-				var attributes = getAttributesBySelector(objCss, selectors.pop());
-
-				var a = CSSAnalyzer.textAttrToObj(gridItem.data('old-style') || gridItem.attr('style'));
-				if (a['-ms-grid-row'] || 
-					a['-ms-grid-column'] || 
-					a['-ms-grid-column-span'] ||
-					a['-ms-grid-row-span']) {
-					attributes = $.extend(true, attributes, a);
-				}
-
-				if (!attributes) return true;
-
-				var row = attributes['-ms-grid-row'] || 1;
-				var column = attributes['-ms-grid-column'] || 1;
-				var columnSpan = attributes['-ms-grid-column-span'] || 1;
-				var rowSpan = attributes['-ms-grid-row-span'] || 1;
-
-				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
-				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
-
-				$(this).css({
-					//top: pos.y,
-					//left: pos.x,
-					width: size.x,
-					//height: size.y
-				})
-			})
-
-			/*block.tracks = */normalizeFractionWidth($(block.selector).outerWidth(), block.tracks);
-
-			if (CSSAnalyzer.textAttrToObj($(block.selector).data('old-style')).height) {
-
-				var realHeight = normalizeFractionHeight(parseFloat(CSSAnalyzer.textAttrToObj($(block.selector).data('old-style')).height), block.tracks);
-				$(block.selector).css({
-					height: realHeight
-				});
-				$(block.selector).data('recent-height', realHeight);
-			} else {
-				var realHeight = normalizeInlineFractionHeight($(block.selector).outerHeight(), block.tracks);
-				$(block.selector).css({
-					height: realHeight
-				});
-				$(block.selector).data('recent-height', realHeight);
-			}
-
-
-			$(block.selector).children().each(function (i, e) {
-				var gridItem = $(this);
-
-				var selectors = CSSAnalyzer.findDefinedSelectors(gridItem.get(0));
-				
-				// TODO: merge all attr to find other same attributes
-
-				var attributes = getAttributesBySelector(objCss, selectors.pop());
-				
-				var a = CSSAnalyzer.textAttrToObj(gridItem.data('old-style') || gridItem.attr('style'));
-				if (a['-ms-grid-row'] || 
-					a['-ms-grid-column'] || 
-					a['-ms-grid-column-span'] ||
-					a['-ms-grid-row-span']) {
-					attributes = $.extend(true, attributes, a);
-				}
-
-				if (!attributes) return true;
-
-				var row = attributes['-ms-grid-row'] || 1;
-				var column = attributes['-ms-grid-column'] || 1;
-				var columnSpan = attributes['-ms-grid-column-span'] || 1;
-				var rowSpan = attributes['-ms-grid-row-span'] || 1;
-
-				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
-				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
-
-				$(this).css({
-					top: pos.y,
-					left: pos.x,
-					width: size.x,
-					height: size.y
-				})
-			});
+			gl_refresh($(block.selector), block);
 			
 		});
 
@@ -1123,16 +950,38 @@
 			return height + totalRealHeightFractions + totalRealHeightAuto;
 		}
 
-		function getAttributesBySelector(objCss, selector) {
-			if (!selector) return {};
-			var found;
-			$.each(objCss, function (i, block) {
-				if (block.selector == selector.selector) {
-					found = block.attributes;
-					return false;
-				}
-			})
-			return $.extend(true, {}, found);
+
+		/*
+		@param element jQuery object		
+		*/
+		function getDefinedAttributesByElement(objCss, element, extra) {
+			extra = extra || {};
+			var i;
+			// Check if exists in cache
+			if ((i = cacheGetDefinedAttributesByElementKey.indexOf(element.get(0))) !== -1) {
+				// slice(0) is for "pass-by-value"
+				return $.extend(true, {}, cacheGetDefinedAttributesByElement[i], extra);
+			}
+			var selectors = CSSAnalyzer.findDefinedSelectors(element.get(0));
+			var attributes = getAttributesBySelector(objCss, selectors);
+
+			// Save to cache
+			cacheGetDefinedAttributesByElementKey.push(element.get(0));
+			cacheGetDefinedAttributesByElement.push(attributes);
+
+			return $.extend(true, {}, attributes, extra);
+		}
+
+		function getAttributesBySelector(objCss, selectors) {
+			var found = {};
+			$.each(selectors, function(i, selector) {
+				$.each(objCss, function (i, block) {
+					if (block.selector == selector.selector) {
+						$.extend(true, found, block.attributes);
+					}
+				});
+			});
+			return found;
 		}
 
 		function calculateTrackSpanLength(tracks, row, column, rowSpan, columnSpan) {
