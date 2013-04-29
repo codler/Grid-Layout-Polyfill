@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.18.0 - 2013-04-25 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.19.0 - 2013-04-29 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2013 Han Lin Yap http://yap.nu; MIT license */
 /* --- Other polyfills --- */
@@ -433,10 +433,10 @@
 
 			normalizeFractionWidth($(block.selector).outerWidth(), block.tracks);
 
+			var oldStyle = CSSAnalyzer.textAttrToObj($(block.selector).data('old-style'));
+			if (oldStyle.height && /^\d+(\.\d+)?px$/.test(oldStyle.height)) {
 
-			if (CSSAnalyzer.textAttrToObj($(block.selector).data('old-style')).height) {
-
-				var realHeight = normalizeFractionHeight(parseFloat(CSSAnalyzer.textAttrToObj($(block.selector).data('old-style')).height), block.tracks);
+				var realHeight = normalizeFractionHeight(parseFloat(oldStyle.height), block.tracks);
 				$(block.selector).css({
 					height: realHeight
 				});
