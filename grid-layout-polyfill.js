@@ -1,28 +1,28 @@
-/*! Grid Layout Polyfill - v1.19.0 - 2013-04-29 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.20.0 - 2014-03-13 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
-* Copyright (c) 2013 Han Lin Yap http://yap.nu; MIT license */
+* Copyright (c) 2014 Han Lin Yap http://yap.nu; MIT license */
 /* --- Other polyfills --- */
 // Avoid `console` errors in browsers that lack a console.
 (function() {
-    var method;
-    var noop = function () {};
-    var methods = [
-        'assert', 'clear', 'count', 'debug', 'dir', 'dirxml', 'error',
-        'exception', 'group', 'groupCollapsed', 'groupEnd', 'info', 'log',
-        'markTimeline', 'profile', 'profileEnd', 'table', 'time', 'timeEnd',
-        'timeStamp', 'trace', 'warn'
-    ];
-    var length = methods.length;
-    var console = (window.console = window.console || {});
+	var method;
+	var noop = function () {};
+	var methods = [
+		'assert', 'clear', 'count', 'debug', 'dir', 'dirxml', 'error',
+		'exception', 'group', 'groupCollapsed', 'groupEnd', 'info', 'log',
+		'markTimeline', 'profile', 'profileEnd', 'table', 'time', 'timeEnd',
+		'timeStamp', 'trace', 'warn'
+	];
+	var length = methods.length;
+	var console = (window.console = window.console || {});
 
-    while (length--) {
-        method = methods[length];
+	while (length--) {
+		method = methods[length];
 
-        // Only stub undefined methods.
-        if (!console[method]) {
-            console[method] = noop;
-        }
-    }
+		// Only stub undefined methods.
+		if (!console[method]) {
+			console[method] = noop;
+		}
+	}
 }());
 
 /* --- CSS Analyzer --- */
@@ -71,9 +71,9 @@
 
 		indexOf: function(array, item) {
 			if (array == null) return -1;
-    		var i = 0, l = array.length;
+			var i = 0, l = array.length;
 			for (; i < l; i++) if (array[i] === item) return i;
-    		return -1;
+			return -1;
 		},
 
 		trim: function(text) {
@@ -291,9 +291,7 @@
 		return;
 	}
 
-	function log(o) {
-		console.log(o);
-	}
+	var log = console.log.bind(console);
 
 	var grids = []; // List of all grids
 
@@ -315,7 +313,6 @@
 	//console.clear();
 	
 	jQuery(function ($) {
-
 		/**
 		 * NOTE: methods and events wont trigger where grid are supported
 		 *
@@ -336,6 +333,10 @@
 					$.each(grids, function(i, block) {
 						$(block.selector).each(function() {
 							if (self == this) {
+								if (!block.hasInit) {
+									init(objCss, block);
+								}
+								
 								// gridLayout(element, block);
 								resetTracks(block.tracks);
 
@@ -392,7 +393,7 @@
 
 		function gl_refresh(ele, block) {
 
-
+			var gridSizeYInitState = $(block.selector).outerHeight();
 			var gridSize = calculateTrackSpanLength(block.tracks, 1, 1, block.tracks.length, block.tracks[0].length);
 			
 			$(block.selector).css({
@@ -428,8 +429,8 @@
 					//left: pos.x,
 					width: size.x,
 					//height: size.y
-				})
-			})
+				});
+			});
 
 			normalizeFractionWidth($(block.selector).outerWidth(), block.tracks);
 
@@ -441,6 +442,42 @@
 					height: realHeight
 				});
 				$(block.selector).data('recent-height', realHeight);
+				
+			} else if (oldStyle.height && /^\d+(\.\d+)?%$/.test(oldStyle.height)) {
+
+				// Get all grids in current grid
+				var childGrids = grids.filter(function(grid) {
+					return !!$(block.selector).has(grid.selector).length;
+				});
+				
+				// Temporary set height to auto then refresh grid layout on those children
+				childGrids.forEach(function(grid) {
+					var gridItem = $(grid.selector);
+					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
+					
+					grid.oldAttributes = attributes;
+					
+					$(grid.selector).height('auto');
+					if (!block.hasInit) {
+						$(grid.selector).gridLayout('refresh');
+					}
+				});
+				
+				// Normalize
+				var realHeight = normalizeFractionHeight(gridSizeYInitState * parseFloat(oldStyle.height)/100, block.tracks);
+				realHeight = Math.min(realHeight, gridSizeYInitState * parseFloat(oldStyle.height)/100/*, realAutoHeight*/);
+				$(block.selector).css({
+					height: realHeight
+				});
+				$(block.selector).data('recent-height', realHeight);
+				
+				// Set back to original height
+				childGrids.forEach(function(grid) {
+					var height = grid.oldAttributes.height;
+					
+					$(grid.selector).height(height);
+				});
+
 			} else {
 				var realHeight = normalizeInlineFractionHeight($(block.selector).outerHeight(), block.tracks);
 				$(block.selector).css({
@@ -469,9 +506,6 @@
 					height: size.y
 				})
 			});
-
-
-
 
 		}
 
@@ -636,15 +670,8 @@
 			return /^(\d+(\.\d+)?(fr|px)|auto)$/.test(value);
 		}
 
-		log(grids);
-
-		var sortByGridDepth = function(a, b) {
-	        return $(a.selector).parents().length - $(b.selector).parents().length;
-	    };
-		grids.sort(sortByGridDepth);
-
-		// apply css
-		$.each(grids, function (i, block) {
+		function init(objCss, block) {
+			"use strict";
 			
 			// Save old style
 			$(block.selector).each(function() {
@@ -654,7 +681,7 @@
 					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
 
 					var style = CSSAnalyzer.textAttrToObj($(this).attr('style'));
-					
+
 					if (attributes.width && !style.width) {
 						style.width = attributes.width;
 					}
@@ -672,6 +699,19 @@
 					$(this).data('old-style', $(this).attr('style'));
 				}
 			});
+			
+			block.hasInit = true;
+		}
+
+		var sortByGridDepth = function(a, b) {
+			return $(a.selector).parents().length - $(b.selector).parents().length;
+		};
+		grids.sort(sortByGridDepth);
+
+		// apply css
+		$.each(grids, function (i, block) {
+			
+			init(objCss, block);
 
 			gl_refresh($(block.selector), block);
 			
@@ -694,7 +734,6 @@
 			var self = this;
 			clearTimeout(resizeTimer);
 			resizeTimer = setTimeout(function() {
-
 				// TODO: should only be needed to clear cache when element or stylesheet have changed.
 				//$.gridLayout('clearCache');
 
