@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.20.0 - 2014-03-13 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.21.0 - 2014-03-28 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2014 Han Lin Yap http://yap.nu; MIT license */
 /* --- Other polyfills --- */
@@ -504,7 +504,7 @@
 					left: pos.x,
 					width: size.x,
 					height: size.y
-				})
+				});
 			});
 
 		}
@@ -645,9 +645,9 @@
 					tracks[x][y] = {
 						x: (typeof cv !== "undefined" && validateValue(cv)) ? cv : 'auto',
 						y: (typeof rv !== "undefined" && validateValue(rv)) ? rv : 'auto'
-					}
+					};
 				});
-			})
+			});
 
 			// Connect element to track
 			$(selector).children().each(function (i, e) {
@@ -751,6 +751,19 @@
 				}
 			}, 100);
 		});
+		
+		/*
+		 * Bug in Chrome. Need to trigger a repaint after setting width to auto
+		 * http://stackoverflow.com/questions/3485365/how-can-i-force-webkit-to-redraw-repaint-to-propagate-style-changes
+		 * 
+		 * @param element DOM Element
+		 */
+		function triggerRepaint(element) {
+			var oldDisplay = element.style.display;
+			element.style.display = 'none';
+			element.offsetWidth;
+			element.style.display = oldDisplay;
+		}
 
 		function normalizeFractionWidth(width, tracks) {
 			// Get highest width for each fraction row and normalize each row to 1 in ratio.
@@ -779,6 +792,11 @@
 					} else if (tracks[r][c].x.indexOf('auto') !== -1) {
 						if (tracks[r][c].item) {
 							tracks[r][c].item.width('auto');
+							
+							// Bug in Chrome. Need to trigger a repaint after setting width to auto
+							// http://stackoverflow.com/questions/3485365/how-can-i-force-webkit-to-redraw-repaint-to-propagate-style-changes
+							triggerRepaint(tracks[r][c].item[0]);
+							
 							//rowHeight = tracks[r][c].item.outerHeight(true);
 							
 							// Get max height of all items
@@ -857,6 +875,11 @@
 					} else if (tracks[r][c].y.indexOf('auto') !== -1) {
 						if (tracks[r][c].item) {
 							tracks[r][c].item.height('auto');
+							
+							// Bug in Chrome. Need to trigger a repaint after setting width to auto
+							// http://stackoverflow.com/questions/3485365/how-can-i-force-webkit-to-redraw-repaint-to-propagate-style-changes
+							triggerRepaint(tracks[r][c].item[0]);
+							
 							//rowHeight = tracks[r][c].item.outerHeight(true);
 							
 							// Get max height of all items
