@@ -425,10 +425,7 @@
 				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
 
 				$(this).css({
-					//top: pos.y,
-					//left: pos.x,
-					width: size.x,
-					//height: size.y
+					width: size.x
 				});
 			});
 
