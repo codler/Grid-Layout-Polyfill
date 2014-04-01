@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.21.0 - 2014-03-28 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.22.0 - 2014-04-01 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2014 Han Lin Yap http://yap.nu; MIT license */
 /* --- Other polyfills --- */
@@ -455,7 +455,8 @@
 					grid.oldAttributes = attributes;
 					
 					$(grid.selector).height('auto');
-					if (!block.hasInit) {
+					
+					if (!grid.hasInit) {
 						$(grid.selector).gridLayout('refresh');
 					}
 				});
@@ -511,13 +512,21 @@
 			for (var r = 0; r < tracks.length; r++) {
 				for (var c = 0; c < tracks[r].length; c++) {
 					if (tracks[r][c].frX) {
-						tracks[r][c].x = tracks[r][c].frX;
-						delete tracks[r][c].frX;
+						if (validateValue(tracks[r][c].frX)) {
+							tracks[r][c].x = tracks[r][c].frX;
+							delete tracks[r][c].frX;
+						} else {
+							log('Invalid value have been inserted to the grid layout');
+						}
 					}
 
 					if (tracks[r][c].frY) {
-						tracks[r][c].y = tracks[r][c].frY;
-						delete tracks[r][c].frY;
+						if (validateValue(tracks[r][c].frY)) {
+							tracks[r][c].y = tracks[r][c].frY;
+							delete tracks[r][c].frY;
+						} else {
+							log('Invalid value have been inserted to the grid layout');
+						}
 					}
 				}
 			}
@@ -955,6 +964,11 @@
 					} else if (tracks[r][c].y.indexOf('auto') !== -1) {
 						if (tracks[r][c].item) {
 							tracks[r][c].item.height('auto');
+							
+							// Bug in Chrome. Need to trigger a repaint after setting width to auto
+							// http://stackoverflow.com/questions/3485365/how-can-i-force-webkit-to-redraw-repaint-to-propagate-style-changes
+							triggerRepaint(tracks[r][c].item[0]);
+							
 							//rowHeight = tracks[r][c].item.outerHeight(true);
 							
 							// Get max height of all items
