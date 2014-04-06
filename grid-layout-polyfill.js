@@ -91,7 +91,7 @@
 			return text;
 		},
 
-		textToObj: function(text) {
+		textToObj: function(text, overrideCallback) {
 			text = self.clean(text);
 			var block = text.split(/({[^{}]*})/);
 
@@ -116,7 +116,7 @@
 							ttt = block.splice(tt, i - tt);
 							ttt.shift();
 							ttt.unshift(t[1]);
-							objCss[objCss.length - 1].attributes = self.textToObj(ttt.join(''));
+							objCss[objCss.length - 1].attributes = self.textToObj(ttt.join(''), overrideCallback);
 							recusiveBlock = false;
 							i = tt;
 							continue;
@@ -137,7 +137,7 @@
 					}
 				} else {
 					if (!recusiveBlock) {
-						objCss[objCss.length - 1].attributes = self.textAttrToObj(block[i].substr(1, block[i].length - 2));
+						objCss[objCss.length - 1].attributes = self.textAttrToObj(block[i].substr(1, block[i].length - 2), overrideCallback);
 					}
 				}
 				i++;
@@ -145,7 +145,7 @@
 			return objCss;
 		},
 
-		textAttrToObj: function(text) {
+		textAttrToObj: function(text, overrideCallback) {
 			text = self.clean(text);
 			if (!text) return {};
 
@@ -162,9 +162,13 @@
 				if (i % 2 == 1) {
 					var property = self.trim(attribute[i - 1]);
 					var value = attribute[i];
-					objAttribute[property] = self.trim(value.substr(1).replace(';', '').replace(/url\(([^)]+)\)/g, function (url) {
+					var newValue = self.trim(value.substr(1).replace(';', '').replace(/url\(([^)]+)\)/g, function (url) {
 						return url.replace(/\[CSSAnalyzer\]/g, ';');
 					}));
+
+					if (!overrideCallback || overrideCallback && overrideCallback(property, newValue)) {
+						objAttribute[property] = newValue;
+					}
 				}
 			}
 			return objAttribute;
@@ -444,7 +448,13 @@
 			return $(this).html();
 		}).get().join('');
 
-		var objCss = CSSAnalyzer.textToObj(styles);
+		var objCss = CSSAnalyzer.textToObj(styles, function dontOverrideMsGrid(property, value) {
+			// Dont override -ms-grid
+			// Eg.
+			// display: -ms-grid;
+			// display: grid; <- this wont override -ms-grid
+			return !(property == 'display' && value != '-ms-grid');
+		});
 
 		/* { selector, attributes, tracks : ([index-x/row][index-y/col] : { x, y }) } */
 		grids = findGrids(objCss);
