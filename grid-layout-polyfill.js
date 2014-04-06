@@ -330,8 +330,31 @@
 			return grids;
 		}
 	};
+
+	// Convert to a valid grid line value. Only integer units are currently supported. 
+	// For grid-column, grid-row
+	// Returns a positive integer value
+	function parseGridLine(value) {
+		return parseGridLineSpan(value);
+	}
+
+	// Convert to a valid grid line span value.
+	// For grid-column-span, grid-row-span
+	// http://www.w3.org/TR/2012/WD-css3-grid-layout-20120322/#grid-row-span-and-grid-column-span
+	// Returns a positive integer value
+	function parseGridLineSpan(value) {
+		value = parseInt(value, 10) || 1;
+		return Math.max(value, 1);
+	}
+
+	// Only fr,px,auto units are currently supported as grid track value. 
+	// Returns a boolean
+	function isValidGridTrack(value) {
+		return /^(\d+(\.\d+)?(fr|px)|auto)$/.test(value);
+	}
 	
-	// Sum an array of numeric strings, returns a number
+	// Sum an array of numeric strings. 
+	// Returns a number
 	function sumArray(arr) {
 		return arr.reduce(function(a, b) {
 			return parseFloat(a) + parseFloat(b);
@@ -519,10 +542,10 @@
 
 				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
 
-				var row = attributes['-ms-grid-row'] || 1;
-				var column = attributes['-ms-grid-column'] || 1;
-				var columnSpan = attributes['-ms-grid-column-span'] || 1;
-				var rowSpan = attributes['-ms-grid-row-span'] || 1;
+				var row = parseGridLine(attributes['-ms-grid-row']);
+				var column = parseGridLine(attributes['-ms-grid-column']);
+				var columnSpan = parseGridLine(attributes['-ms-grid-column-span']);
+				var rowSpan = parseGridLine(attributes['-ms-grid-row-span']);
 
 				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
 				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
@@ -593,10 +616,10 @@
 
 				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
 
-				var row = attributes['-ms-grid-row'] || 1;
-				var column = attributes['-ms-grid-column'] || 1;
-				var columnSpan = attributes['-ms-grid-column-span'] || 1;
-				var rowSpan = attributes['-ms-grid-row-span'] || 1;
+				var row = parseGridLine(attributes['-ms-grid-row']);
+				var column = parseGridLine(attributes['-ms-grid-column']);
+				var columnSpan = parseGridLine(attributes['-ms-grid-column-span']);
+				var rowSpan = parseGridLine(attributes['-ms-grid-row-span']);
 
 				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
 				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
@@ -616,7 +639,7 @@
 			for (var r = 0; r < tracks.length; r++) {
 				for (var c = 0; c < tracks[r].length; c++) {
 					if (tracks[r][c].frX) {
-						if (validateValue(tracks[r][c].frX)) {
+						if (isValidGridTrack(tracks[r][c].frX)) {
 							tracks[r][c].x = tracks[r][c].frX;
 							delete tracks[r][c].frX;
 						} else {
@@ -625,7 +648,7 @@
 					}
 
 					if (tracks[r][c].frY) {
-						if (validateValue(tracks[r][c].frY)) {
+						if (isValidGridTrack(tracks[r][c].frY)) {
 							tracks[r][c].y = tracks[r][c].frY;
 							delete tracks[r][c].frY;
 						} else {
@@ -678,10 +701,10 @@
 
 				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style')));
 
-				var row = parseInt(attributes['-ms-grid-row'], 10) || 1;
-				var column = parseInt(attributes['-ms-grid-column'], 10) || 1;
-				var columnSpan = parseInt(attributes['-ms-grid-column-span'], 10) || 1;
-				var rowSpan = parseInt(attributes['-ms-grid-row-span'], 10) || 1;
+				var row = parseGridLine(attributes['-ms-grid-row']);
+				var column = parseGridLine(attributes['-ms-grid-column']);
+				var columnSpan = parseGridLine(attributes['-ms-grid-column-span']);
+				var rowSpan = parseGridLine(attributes['-ms-grid-row-span']);
 
 				if (cols.length < column) {
 					cols[column] = 'auto';
@@ -702,8 +725,8 @@
 				tracks[x] = [];
 				$.each(cols, function (y, cv) {
 					tracks[x][y] = {
-						x: (typeof cv !== "undefined" && validateValue(cv)) ? cv : 'auto',
-						y: (typeof rv !== "undefined" && validateValue(rv)) ? rv : 'auto'
+						x: (typeof cv !== "undefined" && isValidGridTrack(cv)) ? cv : 'auto',
+						y: (typeof rv !== "undefined" && isValidGridTrack(rv)) ? rv : 'auto'
 					};
 				});
 			});
@@ -714,8 +737,8 @@
 
 				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style')));
 
-				var row = attributes['-ms-grid-row'] || 1;
-				var column = attributes['-ms-grid-column'] || 1;
+				var row = parseGridLine(attributes['-ms-grid-row']);
+				var column = parseGridLine(attributes['-ms-grid-column']);
 				if (tracks[row-1][column-1].item) {
 					tracks[row-1][column-1].item = tracks[row-1][column-1].item.add(gridItem);
 				} else {
@@ -725,9 +748,7 @@
 			return tracks;
 		}
 
-		function validateValue(value) {
-			return /^(\d+(\.\d+)?(fr|px)|auto)$/.test(value);
-		}
+
 
 		function init(objCss, block) {
 			
