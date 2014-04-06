@@ -347,6 +347,24 @@
 		return !(property == 'display' && value != '-ms-grid');
 	}
 
+	/**
+	 * Find block by element in blocks
+	 *
+	 * @param blocks array of blocks
+	 * @param element DOM Element
+	 * @return object block or null 
+	 */
+	function findBlock(blocks, element) {
+		// Looping through all blocks selector matching element
+		for (var i = 0; i < blocks.length; i++) {
+			var block = blocks[i];
+
+			if ($(block.selector).is(element)) {
+				return block;
+			}
+		}
+	}
+
 	// Convert to a valid grid line value. Only integer units are currently supported. 
 	// IE 10 only accept integer
 	// http://msdn.microsoft.com/en-us/library/ie/hh772242(v=vs.85).aspx
@@ -396,55 +414,46 @@
 
 				// Method
 				if (method == 'refresh') {
-					var stop = false;
-					$.each(grids, function(i, block) {
-						$(block.selector).each(function() {
-							if (self == this) {
-								if (!block.hasInit) {
-									init(objCss, block);
-								}
-								
-								// gridLayout(element, block);
-								resetTracks(block.tracks);
-
-								var sameHeight = true;
-								if ($(block.selector).data('recent-height')) {
-									var recentHeight = $(block.selector).data('recent-height');
-
-									if (parseFloat($(block.selector).outerHeight()) != recentHeight) {
-										sameHeight = false;
-
-										// Save old style
-										$(block.selector).each(function() {
-											var gridItem = $(this);
-
-											var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style'), dontOverrideMsGridCallback) );
-
-											var style = CSSAnalyzer.textAttrToObj($(this).attr('style'), dontOverrideMsGridCallback);
-											/*
-											if (attributes.width && !style.width) {
-												style.width = attributes.width;
-											}*/
-											if (attributes.height && !style.height) {
-												style.height = attributes.height;
-											}
-
-											$(this).data('old-style', CSSAnalyzer.objToTextAttr(style));
-
-										});
-									}
-								}
-
-								gl_refresh(self, block);
-
-								stop = true;
-								return false;
-							}
-						});
-						if (stop) {
-							return false;
+					var block = findBlock(grids, this);
+					
+					if (block) {
+						if (!block.hasInit) {
+							init(objCss, block);
 						}
-					});
+						
+						// gridLayout(element, block);
+						resetTracks(block.tracks);
+
+						var sameHeight = true;
+						if ($(block.selector).data('recent-height')) {
+							var recentHeight = $(block.selector).data('recent-height');
+
+							if (parseFloat($(block.selector).outerHeight()) != recentHeight) {
+								sameHeight = false;
+
+								// Save old style
+								$(block.selector).each(function() {
+									var gridItem = $(this);
+
+									var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style'), dontOverrideMsGridCallback) );
+
+									var style = CSSAnalyzer.textAttrToObj($(this).attr('style'), dontOverrideMsGridCallback);
+									/*
+									if (attributes.width && !style.width) {
+										style.width = attributes.width;
+									}*/
+									if (attributes.height && !style.height) {
+										style.height = attributes.height;
+									}
+
+									$(this).data('old-style', CSSAnalyzer.objToTextAttr(style));
+
+								});
+							}
+						}
+
+						gl_refresh(self, block);
+					}
 
 				// TODO: Should this be outside the this.each loop?
 				// Events or Options
