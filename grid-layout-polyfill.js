@@ -300,21 +300,24 @@
 	$.expr[":"]['has-style'] = $.expr.createPseudo(function(arg) {
 		return function( elem ) {
 
-			var a = CSSAnalyzer.textAttrToObj($(elem).attr('style'));
-			var b = CSSAnalyzer.textAttrToObj(arg);
-			var match = false;
-			$.each(a, function(key, value) {
-				$.each(b, function(key2, value2) {
-					if (key == key2 && value == value2) {
-						match = true;
-						return false;
+			// Get inline style of the element and convert to objCSS
+			var a = CSSAnalyzer.textAttrToObj($(elem).attr('style'), dontOverrideMsGridCallback);
+			// Get input argument of has-style() and convert to objCSS
+			var b = CSSAnalyzer.textAttrToObj(arg, dontOverrideMsGridCallback);
+
+			// Find matching key and value in a and b
+			for (var keyA in a) {
+				var valueA = a[keyA];
+
+				for (var keyB in b) {
+					var valueB = b[keyB];
+
+					if (keyA == keyB && valueA == valueB) {
+						return true;
 					}
-				});
-				if (match) {
-					return false;
 				}
-			});
-			return match;
+			}
+
 		};
 	});
 
@@ -335,7 +338,18 @@
 		}
 	};
 
+	// Used in CSSAnalyzer.textToObj and CSSAnalyzer.textAttrToObj
+	function dontOverrideMsGridCallback(property, value) {
+		// Dont override -ms-grid
+		// Eg.
+		// display: -ms-grid;
+		// display: grid; <- this wont override -ms-grid
+		return !(property == 'display' && value != '-ms-grid');
+	}
+
 	// Convert to a valid grid line value. Only integer units are currently supported. 
+	// IE 10 only accept integer
+	// http://msdn.microsoft.com/en-us/library/ie/hh772242(v=vs.85).aspx
 	// For grid-column, grid-row
 	// Returns a positive integer value
 	function parseGridLine(value) {
@@ -404,9 +418,9 @@
 										$(block.selector).each(function() {
 											var gridItem = $(this);
 
-											var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
+											var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style'), dontOverrideMsGridCallback) );
 
-											var style = CSSAnalyzer.textAttrToObj($(this).attr('style'));
+											var style = CSSAnalyzer.textAttrToObj($(this).attr('style'), dontOverrideMsGridCallback);
 											/*
 											if (attributes.width && !style.width) {
 												style.width = attributes.width;
@@ -448,20 +462,14 @@
 			return $(this).html();
 		}).get().join('');
 
-		var objCss = CSSAnalyzer.textToObj(styles, function dontOverrideMsGrid(property, value) {
-			// Dont override -ms-grid
-			// Eg.
-			// display: -ms-grid;
-			// display: grid; <- this wont override -ms-grid
-			return !(property == 'display' && value != '-ms-grid');
-		});
+		var objCss = CSSAnalyzer.textToObj(styles, dontOverrideMsGridCallback);
 
 		/* { selector, attributes, tracks : ([index-x/row][index-y/col] : { x, y }) } */
 		grids = findGrids(objCss);
 		
 		// [data-ms-grid] are for IE9
 		$('[style]:has-style("display:-ms-grid"), [data-ms-grid]').each(function () {
-			var attr = CSSAnalyzer.textAttrToObj($(this).attr('style'));
+			var attr = CSSAnalyzer.textAttrToObj($(this).attr('style'), dontOverrideMsGridCallback);
 			// For IE9
 			if (!attr.display) {
 				attr.display = '-ms-grid';
@@ -550,7 +558,7 @@
 			}).each(function (i, e) {
 				var gridItem = $(this);
 
-				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style'), dontOverrideMsGridCallback) );
 
 				var row = parseGridLine(attributes['-ms-grid-row']);
 				var column = parseGridLine(attributes['-ms-grid-column']);
@@ -567,7 +575,7 @@
 			
 			normalizeFractionWidth($blockSelector.outerWidth(), block.tracks);
 
-			var oldStyle = CSSAnalyzer.textAttrToObj($(block.selector).data('old-style'));
+			var oldStyle = CSSAnalyzer.textAttrToObj($(block.selector).data('old-style'), dontOverrideMsGridCallback);
 			if (oldStyle.height && /^\d+(\.\d+)?px$/.test(oldStyle.height)) {
 
 				var realHeight = normalizeFractionHeight(parseFloat(oldStyle.height), block.tracks);
@@ -586,7 +594,7 @@
 				// Temporary set height to auto then refresh grid layout on those children
 				childGrids.forEach(function(grid) {
 					var gridItem = $(grid.selector);
-					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
+					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style'), dontOverrideMsGridCallback) );
 					
 					grid.oldAttributes = attributes;
 					
@@ -624,7 +632,7 @@
 			$(block.selector).children().each(function (i, e) {
 				var gridItem = $(this);
 
-				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style'), dontOverrideMsGridCallback) );
 
 				var row = parseGridLine(attributes['-ms-grid-row']);
 				var column = parseGridLine(attributes['-ms-grid-column']);
@@ -709,7 +717,7 @@
 			$(selector).children().each(function (i, e) {
 				var gridItem = $(this);
 
-				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style')));
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style'), dontOverrideMsGridCallback) );
 
 				var row = parseGridLine(attributes['-ms-grid-row']);
 				var column = parseGridLine(attributes['-ms-grid-column']);
@@ -745,7 +753,7 @@
 			$(selector).children().each(function (i, e) {
 				var gridItem = $(this);
 
-				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style')));
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style'), dontOverrideMsGridCallback) );
 
 				var row = parseGridLine(attributes['-ms-grid-row']);
 				var column = parseGridLine(attributes['-ms-grid-column']);
@@ -770,9 +778,9 @@
 				if (!$(this).data('old-style')) {
 					var gridItem = $(this);
 
-					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
+					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style'), dontOverrideMsGridCallback) );
 
-					var style = CSSAnalyzer.textAttrToObj($(this).attr('style'));
+					var style = CSSAnalyzer.textAttrToObj($(this).attr('style'), dontOverrideMsGridCallback);
 
 					if (attributes.width && !style.width) {
 						style.width = attributes.width;
