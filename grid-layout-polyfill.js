@@ -347,6 +347,12 @@
 		return !(property == 'display' && value != '-ms-grid');
 	}
 
+	// Sort grid order by "Parent > Child"
+	// Used in Array.sort
+	function sortByGridDepth(blockA, blockB) {
+		return $(blockA.selector).parents().length - $(blockB.selector).parents().length;
+	}
+
 	/**
 	 * Find block by element in blocks
 	 *
@@ -421,7 +427,6 @@
 							init(objCss, block);
 						}
 						
-						// gridLayout(element, block);
 						resetTracks(block.tracks);
 
 						var sameHeight = true;
@@ -467,15 +472,19 @@
 			});
 		};
 
+		// Get css text from all style tags
 		var styles = $('style').map(function() {
 			return $(this).html();
 		}).get().join('');
 
+		// Convert to objCss
 		var objCss = CSSAnalyzer.textToObj(styles, dontOverrideMsGridCallback);
 
+		// Find all grids based on css and get as block format
 		/* { selector, attributes, tracks : ([index-x/row][index-y/col] : { x, y }) } */
 		grids = findGrids(objCss);
 		
+		// Find grids from inline-style
 		// [data-ms-grid] are for IE9
 		$('[style]:has-style("display:-ms-grid"), [data-ms-grid]').each(function () {
 			var attr = CSSAnalyzer.textAttrToObj($(this).attr('style'), dontOverrideMsGridCallback);
@@ -490,9 +499,7 @@
 			});
 		});
 		
-		var sortByGridDepth = function(a, b) {
-			return $(a.selector).parents().length - $(b.selector).parents().length;
-		};
+		// Sort grid order by "Parent > Child"
 		grids.sort(sortByGridDepth);
 
 		// apply css
