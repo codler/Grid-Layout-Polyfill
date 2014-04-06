@@ -1,32 +1,23 @@
-/*! Grid Layout Polyfill - v1.22.0 - 2014-04-01 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.23.0 - 2014-04-04 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2014 Han Lin Yap http://yap.nu; MIT license */
 /* --- Other polyfills --- */
 // Avoid `console` errors in browsers that lack a console.
 (function() {
-	var method;
 	var noop = function () {};
-	var methods = [
-		'assert', 'clear', 'count', 'debug', 'dir', 'dirxml', 'error',
-		'exception', 'group', 'groupCollapsed', 'groupEnd', 'info', 'log',
-		'markTimeline', 'profile', 'profileEnd', 'table', 'time', 'timeEnd',
-		'timeStamp', 'trace', 'warn'
-	];
-	var length = methods.length;
 	var console = (window.console = window.console || {});
-
-	while (length--) {
-		method = methods[length];
-
-		// Only stub undefined methods.
-		if (!console[method]) {
-			console[method] = noop;
-		}
+	
+	if (!console.log) {
+		console.log = noop;
+	}
+	
+	if (!console.warn) {
+		console.warn = noop;
 	}
 }());
 
 /* --- CSS Analyzer --- */
-(function(){
+(function() {
 	var styleSheets = document.styleSheets;
 	var cacheFindDefinedSelectorsKey = [];
 	var cacheFindDefinedSelectors = [];
@@ -259,11 +250,15 @@
 
 			return selectors.slice(0);
 		}
-	}
+	};
 })();
 
 /* --- Grid Layout polyfill --- */
 (function($) {
+	'use strict';
+	
+	var log, warn, grids, cacheGetDefinedAttributesByElementKey, cacheGetDefinedAttributesByElement;
+	
 	// Prevent to read twice
 	if ($.gridLayout) {
 		return;
@@ -279,23 +274,49 @@
 	$.support.gridLayout = div.style.display === '-ms-grid';
 	*/
 
-	// TODO: Low priority: find a better one to detect IE8 and lower
-	// IE8 or lower
-	var ltIE8 = 'function' !== typeof Array.prototype.reduce;
-	var cacheGetDefinedAttributesByElementKey = [];
-	var cacheGetDefinedAttributesByElement = [];
-
-	if ($.support.gridLayout || ltIE8) {
-		$.fn.gridLayout = function() { return this; };
+	// Dont run grid layout polyfill if grid are supported or IE 8 and lower
+	if ($.support.gridLayout || (document.documentMode && document.documentMode <= 8)) {
+		// Make it still chainable
+		$.fn.gridLayout = function gridLayoutStatic() { return this; };
 		$.gridLayout = $.noop();
 		return;
 	}
 
-	var log = console.log.bind(console);
+	// Bind console for better stack trace when debugging
+	// IE 9 needs the longer version "Function.prototype.bind.call" instead of "console.log.bind"
+	log = Function.prototype.bind.call(console.log, console); // console.log.bind(console);
+	warn = Function.prototype.bind.call(console.warn, console); // console.warn.bind(console);
 
-	var grids = []; // List of all grids
+	grids = []; // List of all grids
 
-	$.gridLayout = function(method) {
+	cacheGetDefinedAttributesByElementKey = [];
+	cacheGetDefinedAttributesByElement = [];
+
+	// Creating jQuery selector expression ":has-style('display:-ms-grid')"
+	$.expr[":"]['has-style'] = $.expr.createPseudo(function(arg) {
+		return function( elem ) {
+
+			var a = CSSAnalyzer.textAttrToObj($(elem).attr('style'));
+			var b = CSSAnalyzer.textAttrToObj(arg);
+			var match = false;
+			$.each(a, function(key, value) {
+				$.each(b, function(key2, value2) {
+					if (key == key2 && value == value2) {
+						match = true;
+						return false;
+					}
+				});
+				if (match) {
+					return false;
+				}
+			});
+			return match;
+		};
+	});
+
+	// Exposing $.gridLayout
+	$.gridLayout = function gridLayoutStatic(method) {
+	
 		// Internal usage
 		if (method == 'clearCache') {
 			// TODO: remove and use CSSAnalyzer instead
@@ -309,12 +330,17 @@
 			return grids;
 		}
 	};
-
-	//console.clear();
+	
+	// Sum an array of numeric strings, returns a number
+	function sumArray(arr) {
+		return arr.reduce(function(a, b) {
+			return parseFloat(a) + parseFloat(b);
+		}, 0);
+	}
 	
 	jQuery(function ($) {
 		/**
-		 * NOTE: methods and events wont trigger where grid are supported
+		 * NOTE: methods and events wont trigger when grid are supported
 		 *
 		 * Methods: refresh
 		 * Events: resize
@@ -391,153 +417,6 @@
 			});
 		};
 
-		function gl_refresh(ele, block) {
-
-			var gridSizeYInitState = $(block.selector).outerHeight();
-			var gridSize = calculateTrackSpanLength(block.tracks, 1, 1, block.tracks.length, block.tracks[0].length);
-			
-			$(block.selector).css({
-				'position' : 'relative',
-				'box-sizing': 'border-box',
-				width: (block.attributes.display == '-ms-grid' || block.attributes.display == 'grid') ? 'auto' : gridSize.x,
-				height: gridSize.y
-			});
-
-
-			$(block.selector).children().css({
-				'box-sizing': 'border-box',
-					'position': 'absolute',
-				top: 0,
-				left: 0,
-				width: block.tracks[0][0].x,
-				height: block.tracks[0][0].y
-			}).each(function (i, e) {
-				var gridItem = $(this);
-
-				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
-
-				var row = attributes['-ms-grid-row'] || 1;
-				var column = attributes['-ms-grid-column'] || 1;
-				var columnSpan = attributes['-ms-grid-column-span'] || 1;
-				var rowSpan = attributes['-ms-grid-row-span'] || 1;
-
-				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
-				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
-
-				$(this).css({
-					width: size.x
-				});
-			});
-
-			normalizeFractionWidth($(block.selector).outerWidth(), block.tracks);
-
-			var oldStyle = CSSAnalyzer.textAttrToObj($(block.selector).data('old-style'));
-			if (oldStyle.height && /^\d+(\.\d+)?px$/.test(oldStyle.height)) {
-
-				var realHeight = normalizeFractionHeight(parseFloat(oldStyle.height), block.tracks);
-				$(block.selector).css({
-					height: realHeight
-				});
-				$(block.selector).data('recent-height', realHeight);
-				
-			} else if (oldStyle.height && /^\d+(\.\d+)?%$/.test(oldStyle.height)) {
-
-				// Get all grids in current grid
-				var childGrids = grids.filter(function(grid) {
-					return !!$(block.selector).has(grid.selector).length;
-				});
-				
-				// Temporary set height to auto then refresh grid layout on those children
-				childGrids.forEach(function(grid) {
-					var gridItem = $(grid.selector);
-					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
-					
-					grid.oldAttributes = attributes;
-					
-					$(grid.selector).height('auto');
-					
-					if (!grid.hasInit) {
-						$(grid.selector).gridLayout('refresh');
-					}
-				});
-				
-				// Normalize
-				var realHeight = normalizeFractionHeight(gridSizeYInitState * parseFloat(oldStyle.height)/100, block.tracks);
-				realHeight = Math.min(realHeight, gridSizeYInitState * parseFloat(oldStyle.height)/100/*, realAutoHeight*/);
-				$(block.selector).css({
-					height: realHeight
-				});
-				$(block.selector).data('recent-height', realHeight);
-				
-				// Set back to original height
-				childGrids.forEach(function(grid) {
-					var height = grid.oldAttributes.height;
-					
-					$(grid.selector).height(height);
-				});
-
-			} else {
-				var realHeight = normalizeInlineFractionHeight($(block.selector).outerHeight(), block.tracks);
-				$(block.selector).css({
-					height: realHeight
-				});
-				$(block.selector).data('recent-height', realHeight);
-			}
-
-			$(block.selector).children().each(function (i, e) {
-				var gridItem = $(this);
-
-				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
-
-				var row = attributes['-ms-grid-row'] || 1;
-				var column = attributes['-ms-grid-column'] || 1;
-				var columnSpan = attributes['-ms-grid-column-span'] || 1;
-				var rowSpan = attributes['-ms-grid-row-span'] || 1;
-
-				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
-				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
-
-				$(this).css({
-					top: pos.y,
-					left: pos.x,
-					width: size.x,
-					height: size.y
-				});
-			});
-
-		}
-
-		// set back fr-unit
-		function resetTracks(tracks) {
-			for (var r = 0; r < tracks.length; r++) {
-				for (var c = 0; c < tracks[r].length; c++) {
-					if (tracks[r][c].frX) {
-						if (validateValue(tracks[r][c].frX)) {
-							tracks[r][c].x = tracks[r][c].frX;
-							delete tracks[r][c].frX;
-						} else {
-							log('Invalid value have been inserted to the grid layout');
-						}
-					}
-
-					if (tracks[r][c].frY) {
-						if (validateValue(tracks[r][c].frY)) {
-							tracks[r][c].y = tracks[r][c].frY;
-							delete tracks[r][c].frY;
-						} else {
-							log('Invalid value have been inserted to the grid layout');
-						}
-					}
-				}
-			}
-		}
-
-		var sumArray = function(arr) {
-			return arr.reduce(function(a, b) {
-				return parseFloat(a) + parseFloat(b);
-			}, 0);
-		};
-
 		var styles = $('style').map(function() {
 			return $(this).html();
 		}).get().join('');
@@ -547,32 +426,10 @@
 		/* { selector, attributes, tracks : ([index-x/row][index-y/col] : { x, y }) } */
 		grids = findGrids(objCss);
 		
-
-		$.expr[":"]['has-style'] = $.expr.createPseudo(function(arg) {
-			return function( elem ) {
-
-				var a = CSSAnalyzer.textAttrToObj($(elem).attr('style'));
-				var b = CSSAnalyzer.textAttrToObj(arg);
-				var match = false;
-				$.each(a, function(key, value) {
-					$.each(b, function(key2, value2) {
-						if (key == key2 && value == value2) {
-							match = true;
-							return false;
-						}
-					});
-					if (match) {
-						return false;
-					}
-				});
-				return match;
-			};
-		});
-
 		// [data-ms-grid] are for IE9
-		$('[style]:has-style("display:-ms-grid"), [style]:has-style("display:grid"), [data-ms-grid]').each(function () {
+		$('[style]:has-style("display:-ms-grid"), [data-ms-grid]').each(function () {
 			var attr = CSSAnalyzer.textAttrToObj($(this).attr('style'));
-			// For ie9
+			// For IE9
 			if (!attr.display) {
 				attr.display = '-ms-grid';
 			}
@@ -582,133 +439,7 @@
 				tracks: extractTracks(this, attr)
 			});
 		});
-
-
-
-
-
-
-
-
-
-
-		function findGrids(objCss) {
-			var grids = [];
-			$.each(objCss, function (i, block) {
-				if (block.attributes) {
-					if (block.attributes.display == '-ms-grid' ||
-						block.attributes.display == 'grid') {
-						grids.push({
-							selector: block.selector,
-							attributes: block.attributes,
-							tracks: extractTracks(block.selector, block.attributes)
-						});
-
-						//grids.push(block);
-					}
-				}
-			});
-			return grids;
-		}
-
-		function extractTracks(selector, attrs) {
-			var cols = attrs['-ms-grid-columns'] || 'auto';
-			var rows = attrs['-ms-grid-rows'] || 'auto';
-			cols = cols.toLowerCase().split(' ');
-			rows = rows.toLowerCase().split(' ');
-
-			
-			// Find implicit columns and rows
-			// http://www.w3.org/TR/2012/WD-css3-grid-layout-20120322/#implicit-columns-and-rows
-			$(selector).children().each(function (i, e) {
-				var gridItem = $(this);
-
-				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style')));
-
-				var row = attributes['-ms-grid-row'] || 1;
-				var column = attributes['-ms-grid-column'] || 1;
-				var columnSpan = attributes['-ms-grid-column-span'] || 1;
-				var rowSpan = attributes['-ms-grid-row-span'] || 1;
-
-				if (cols.length < column) {
-					cols[column] = 'auto';
-				}
-				if (cols.length < (column - 1) + columnSpan) {
-					cols[(column - 1) + columnSpan] = 'auto';
-				}
-				if (rows.length < row) {
-					rows[row] = 'auto';
-				}
-				if (rows.length < (row - 1) + rowSpan) {
-					rows[(row - 1) + rowSpan] = 'auto';
-				}
-			});
-
-			var tracks = [];
-			$.each(rows, function (x, rv) {
-				tracks[x] = [];
-				$.each(cols, function (y, cv) {
-					tracks[x][y] = {
-						x: (typeof cv !== "undefined" && validateValue(cv)) ? cv : 'auto',
-						y: (typeof rv !== "undefined" && validateValue(rv)) ? rv : 'auto'
-					};
-				});
-			});
-
-			// Connect element to track
-			$(selector).children().each(function (i, e) {
-				var gridItem = $(this);
-
-				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style')));
-
-				var row = attributes['-ms-grid-row'] || 1;
-				var column = attributes['-ms-grid-column'] || 1;
-				if (tracks[row-1][column-1].item) {
-					tracks[row-1][column-1].item = tracks[row-1][column-1].item.add(gridItem);
-				} else {
-					tracks[row-1][column-1].item = gridItem;
-				}
-			});
-			return tracks;
-		}
-
-		function validateValue(value) {
-			return /^(\d+(\.\d+)?(fr|px)|auto)$/.test(value);
-		}
-
-		function init(objCss, block) {
-			"use strict";
-			
-			// Save old style
-			$(block.selector).each(function() {
-				if (!$(this).data('old-style')) {
-					var gridItem = $(this);
-
-					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
-
-					var style = CSSAnalyzer.textAttrToObj($(this).attr('style'));
-
-					if (attributes.width && !style.width) {
-						style.width = attributes.width;
-					}
-					if (attributes.height && !style.height) {
-						style.height = attributes.height;
-					}
-
-					$(this).data('old-style', CSSAnalyzer.objToTextAttr(style));
-				}
-			});
-
-			// Save old style
-			$(block.selector).children().each(function() {
-				if (!$(this).data('old-style')) {
-					$(this).data('old-style', $(this).attr('style'));
-				}
-			});
-			
-			block.hasInit = true;
-		}
-
+		
 		var sortByGridDepth = function(a, b) {
 			return $(a.selector).parents().length - $(b.selector).parents().length;
 		};
@@ -758,6 +489,291 @@
 			}, 100);
 		});
 		
+		function gl_refresh(ele, block) {
+			var $blockSelector = $(block.selector);
+			var $blockSelectorChildren = $blockSelector.children();
+			
+			var gridSizeYInitState = $blockSelector.outerHeight();
+			var gridSize = calculateTrackSpanLength(block.tracks, 1, 1, block.tracks.length, block.tracks[0].length);
+			
+			$blockSelector.css({
+				'position' : 'relative'
+			});
+			
+			$blockSelectorChildren.css({
+				'position': 'absolute'
+			});
+			
+			$blockSelector.css({
+				width: (block.attributes.display == '-ms-grid') ? 'auto' : gridSize.x,
+				height: gridSize.y
+			});
+
+			$blockSelectorChildren.css({
+				top: 0,
+				left: 0,
+				width: block.tracks[0][0].x,
+				height: block.tracks[0][0].y
+			}).each(function (i, e) {
+				var gridItem = $(this);
+
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
+
+				var row = attributes['-ms-grid-row'] || 1;
+				var column = attributes['-ms-grid-column'] || 1;
+				var columnSpan = attributes['-ms-grid-column-span'] || 1;
+				var rowSpan = attributes['-ms-grid-row-span'] || 1;
+
+				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
+				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
+
+				$(this).css({
+					width: size.x
+				});
+			});
+			
+			normalizeFractionWidth($blockSelector.outerWidth(), block.tracks);
+
+			var oldStyle = CSSAnalyzer.textAttrToObj($(block.selector).data('old-style'));
+			if (oldStyle.height && /^\d+(\.\d+)?px$/.test(oldStyle.height)) {
+
+				var realHeight = normalizeFractionHeight(parseFloat(oldStyle.height), block.tracks);
+				$(block.selector).css({
+					height: realHeight
+				});
+				$(block.selector).data('recent-height', realHeight);
+				
+			} else if (oldStyle.height && /^\d+(\.\d+)?%$/.test(oldStyle.height)) {
+
+				// Get all grids in current grid
+				var childGrids = grids.filter(function(grid) {
+					return !!$(block.selector).has(grid.selector).length;
+				});
+				
+				// Temporary set height to auto then refresh grid layout on those children
+				childGrids.forEach(function(grid) {
+					var gridItem = $(grid.selector);
+					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
+					
+					grid.oldAttributes = attributes;
+					
+					$(grid.selector).height('auto');
+					
+					if (!grid.hasInit) {
+						$(grid.selector).gridLayout('refresh');
+					}
+					
+				});
+				
+				// Normalize
+				var realHeight = normalizeFractionHeight(gridSizeYInitState * parseFloat(oldStyle.height)/100, block.tracks);
+				realHeight = Math.min(realHeight, gridSizeYInitState * parseFloat(oldStyle.height)/100/*, realAutoHeight*/);
+				$(block.selector).css({
+					height: realHeight
+				});
+				$(block.selector).data('recent-height', realHeight);
+				
+				// Set back to original height
+				childGrids.forEach(function(grid) {
+					var height = grid.oldAttributes.height;
+					
+					$(grid.selector).height(height);
+				});
+
+			} else {
+				var realHeight = normalizeInlineFractionHeight($(block.selector).outerHeight(), block.tracks);
+				$(block.selector).css({
+					height: realHeight
+				});
+				$(block.selector).data('recent-height', realHeight);
+			}
+			
+			$(block.selector).children().each(function (i, e) {
+				var gridItem = $(this);
+
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
+
+				var row = attributes['-ms-grid-row'] || 1;
+				var column = attributes['-ms-grid-column'] || 1;
+				var columnSpan = attributes['-ms-grid-column-span'] || 1;
+				var rowSpan = attributes['-ms-grid-row-span'] || 1;
+
+				var size = calculateTrackSpanLength(block.tracks, row, column, rowSpan, columnSpan);
+				var pos = calculateTrackSpanLength(block.tracks, 1, 1, row - 1, column - 1);
+
+				$(this).css({
+					top: pos.y,
+					left: pos.x,
+					width: size.x,
+					height: size.y
+				});
+			});
+
+		}
+
+		// set back fr-unit
+		function resetTracks(tracks) {
+			for (var r = 0; r < tracks.length; r++) {
+				for (var c = 0; c < tracks[r].length; c++) {
+					if (tracks[r][c].frX) {
+						if (validateValue(tracks[r][c].frX)) {
+							tracks[r][c].x = tracks[r][c].frX;
+							delete tracks[r][c].frX;
+						} else {
+							warn('Invalid value have been inserted to the grid layout. In track index: ' + r + ', ' + c + '. Value: ' + tracks[r][c].frX);
+						}
+					}
+
+					if (tracks[r][c].frY) {
+						if (validateValue(tracks[r][c].frY)) {
+							tracks[r][c].y = tracks[r][c].frY;
+							delete tracks[r][c].frY;
+						} else {
+							warn('Invalid value have been inserted to the grid layout. In track index: ' + r + ', ' + c + '. Value: ' + tracks[r][c].frY);
+						}
+					}
+				}
+			}
+		}
+
+
+
+
+
+
+
+
+
+
+
+		function findGrids(objCss) {
+			var grids = [];
+			$.each(objCss, function (i, block) {
+				if (block.attributes) {
+					if (block.attributes.display == '-ms-grid') {
+						grids.push({
+							selector: block.selector,
+							attributes: block.attributes,
+							tracks: extractTracks(block.selector, block.attributes)
+						});
+
+						//grids.push(block);
+					}
+				}
+			});
+			return grids;
+		}
+
+		function extractTracks(selector, attrs) {
+			var cols = attrs['-ms-grid-columns'] || 'auto';
+			var rows = attrs['-ms-grid-rows'] || 'auto';
+			cols = cols.toLowerCase().split(' ');
+			rows = rows.toLowerCase().split(' ');
+
+			
+			// Find implicit columns and rows
+			// http://www.w3.org/TR/2012/WD-css3-grid-layout-20120322/#implicit-columns-and-rows
+			$(selector).children().each(function (i, e) {
+				var gridItem = $(this);
+
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style')));
+
+				var row = parseInt(attributes['-ms-grid-row'], 10) || 1;
+				var column = parseInt(attributes['-ms-grid-column'], 10) || 1;
+				var columnSpan = parseInt(attributes['-ms-grid-column-span'], 10) || 1;
+				var rowSpan = parseInt(attributes['-ms-grid-row-span'], 10) || 1;
+
+				if (cols.length < column) {
+					cols[column] = 'auto';
+				}
+				if (cols.length < (column - 1) + columnSpan) {
+					cols[(column - 1) + columnSpan] = 'auto';
+				}
+				if (rows.length < row) {
+					rows[row] = 'auto';
+				}
+				if (rows.length < (row - 1) + rowSpan) {
+					rows[(row - 1) + rowSpan] = 'auto';
+				}
+			});
+
+			var tracks = [];
+			$.each(rows, function (x, rv) {
+				tracks[x] = [];
+				$.each(cols, function (y, cv) {
+					tracks[x][y] = {
+						x: (typeof cv !== "undefined" && validateValue(cv)) ? cv : 'auto',
+						y: (typeof rv !== "undefined" && validateValue(rv)) ? rv : 'auto'
+					};
+				});
+			});
+
+			// Connect element to track
+			$(selector).children().each(function (i, e) {
+				var gridItem = $(this);
+
+				var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.attr('style')));
+
+				var row = attributes['-ms-grid-row'] || 1;
+				var column = attributes['-ms-grid-column'] || 1;
+				if (tracks[row-1][column-1].item) {
+					tracks[row-1][column-1].item = tracks[row-1][column-1].item.add(gridItem);
+				} else {
+					tracks[row-1][column-1].item = gridItem;
+				}
+			});
+			return tracks;
+		}
+
+		function validateValue(value) {
+			return /^(\d+(\.\d+)?(fr|px)|auto)$/.test(value);
+		}
+
+		function init(objCss, block) {
+			
+			var $blockSelector = $(block.selector);
+			var $blockSelectorChildren = $blockSelector.children();
+			
+			// Save old style
+			$blockSelector.each(function() {
+				if (!$(this).data('old-style')) {
+					var gridItem = $(this);
+
+					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style')));
+
+					var style = CSSAnalyzer.textAttrToObj($(this).attr('style'));
+
+					if (attributes.width && !style.width) {
+						style.width = attributes.width;
+					}
+					if (attributes.height && !style.height) {
+						style.height = attributes.height;
+					}
+
+					$(this).data('old-style', CSSAnalyzer.objToTextAttr(style));
+				}
+			});
+			
+			// Save old style
+			$blockSelectorChildren.each(function() {
+				if (!$(this).data('old-style')) {
+					$(this).data('old-style', $(this).attr('style'));
+				}
+			});
+			
+			// prepare setting required CSS to simulate grid
+			$blockSelector.css({
+				'box-sizing': 'border-box'
+			});
+			
+			// prepare setting required CSS to simulate grid
+			$blockSelectorChildren.css({
+				'box-sizing': 'border-box'
+			});
+			
+			block.hasInit = true;
+		}
+
 		/*
 		 * Bug in Chrome. Need to trigger a repaint after setting width to auto
 		 * http://stackoverflow.com/questions/3485365/how-can-i-force-webkit-to-redraw-repaint-to-propagate-style-changes
@@ -1065,23 +1081,11 @@
 				y: 0
 			};
 			for (var r = 0; r < rowSpan; r++) {
-				// TODO calc "fr"-unit
-				/*
-				if ((/^\d+(\.\d+)?(px)?$/.test(tracks[row + r][column].y)) != (tracks[row + r][column].y.indexOf('fr') === -1)) {
-					console.log('---------------------------------------');
-					console.log(tracks[row + r][column].y);
-				}*/
 				if (/^\d+(\.\d+)?(px)?$/.test(tracks[row + r][column].y)) {
 					length.y += parseFloat(tracks[row + r][column].y);
 				}
 			}
 			for (var c = 0; c < columnSpan; c++) {
-				// TODO calc "fr"-unit
-				/*
-				if ((/^\d+(\.\d+)?(px)?$/.test(tracks[row][column + c].x)) != (tracks[row][column + c].x.indexOf('fr') === -1)) {
-					console.log('---------------------------------------');
-					console.log(tracks[row][column + c].x);
-				}*/
 				if (/^\d+(\.\d+)?(px)?$/.test(tracks[row][column + c].x)) {
 					length.x += parseFloat(tracks[row][column + c].x);
 				}
