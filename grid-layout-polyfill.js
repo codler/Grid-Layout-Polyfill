@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.23.0 - 2014-04-04 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.24.0 - 2014-04-07 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2014 Han Lin Yap http://yap.nu; MIT license */
 /* --- Other polyfills --- */
