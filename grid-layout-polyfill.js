@@ -1,4 +1,4 @@
-/*! Grid Layout Polyfill - v1.24.0 - 2014-04-07 - Polyfill for IE10 grid layout -ms-grid.
+/*! Grid Layout Polyfill - v1.25.0 - 2014-04-21 - Polyfill for IE10 grid layout -ms-grid.
 * https://github.com/codler/Grid-Layout-Polyfill
 * Copyright (c) 2014 Han Lin Yap http://yap.nu; MIT license */
 /* --- Other polyfills --- */
@@ -600,43 +600,6 @@
 				});
 				$(block.selector).data('recent-height', realHeight);
 				
-			} else if (oldStyle.height && /^\d+(\.\d+)?%$/.test(oldStyle.height)) {
-
-				// Get all grids in current grid
-				var childGrids = grids.filter(function(grid) {
-					return !!$(block.selector).has(grid.selector).length;
-				});
-				
-				// Temporary set height to auto then refresh grid layout on those children
-				childGrids.forEach(function(grid) {
-					var gridItem = $(grid.selector);
-					var attributes = getDefinedAttributesByElement(objCss, gridItem, CSSAnalyzer.textAttrToObj(gridItem.data('old-style'), dontOverrideMsGridCallback) );
-					
-					grid.oldAttributes = attributes;
-					
-					$(grid.selector).height('auto');
-					
-					if (!grid.hasInit) {
-						$(grid.selector).gridLayout('refresh');
-					}
-					
-				});
-				
-				// Normalize
-				var realHeight = normalizeFractionHeight(gridSizeYInitState * parseFloat(oldStyle.height)/100, block.tracks);
-				realHeight = Math.min(realHeight, gridSizeYInitState * parseFloat(oldStyle.height)/100/*, realAutoHeight*/);
-				$(block.selector).css({
-					height: realHeight
-				});
-				$(block.selector).data('recent-height', realHeight);
-				
-				// Set back to original height
-				childGrids.forEach(function(grid) {
-					var height = grid.oldAttributes.height;
-					
-					$(grid.selector).height(height);
-				});
-
 			} else {
 				var realHeight = normalizeInlineFractionHeight($(block.selector).outerHeight(), block.tracks);
 				$(block.selector).css({
